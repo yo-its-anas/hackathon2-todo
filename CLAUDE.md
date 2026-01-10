@@ -209,9 +209,64 @@ Wait for consent; never auto-create ADRs. Group related decisions (stacks, authe
 ## Code Standards
 See `.specify/memory/constitution.md` for code quality, testing, performance, security, and architecture principles.
 
-## Active Technologies
-- Python 3.13+ + Python standard library only (dataclasses for models, interactive menu CLI) (001-todo-cli)
-- In-memory only (Python dict[int, Task] with auto-increment IDs) - no files, no databases (001-todo-cli)
+## Agent Routing
+
+Specialized agents are available for different concerns. Route work appropriately:
+
+- **Auth Agent** (`auth-architect`) → Authentication implementation using Better Auth + JWT
+- **Frontend Agent** (`nextjs-frontend-builder`) → Next.js 16+ App Router UI development
+- **DB Agent** (`neon-db-architect`) → Neon Serverless PostgreSQL + SQLModel schema design
+- **Backend Agent** (`fastapi-spec-enforcer`) → FastAPI REST API implementation
+
+## Project: Multi-User Todo Web App
+
+### Tech Stack
+
+| Layer | Technology |
+|-------|------------|
+| Frontend | Next.js 16+ (App Router) |
+| Backend | Python FastAPI |
+| ORM | SQLModel |
+| Database | Neon Serverless PostgreSQL |
+| Auth | Better Auth (JWT plugin) |
+
+### API Endpoints
+
+All endpoints require JWT token in `Authorization: Bearer <token>` header.
+
+| Method | Endpoint | Action |
+|--------|----------|--------|
+| GET | `/api/{user_id}/tasks` | List user's tasks |
+| POST | `/api/{user_id}/tasks` | Create task |
+| GET | `/api/{user_id}/tasks/{id}` | Get task |
+| PUT | `/api/{user_id}/tasks/{id}` | Update task |
+| DELETE | `/api/{user_id}/tasks/{id}` | Delete task |
+| PATCH | `/api/{user_id}/tasks/{id}/complete` | Toggle completion |
+
+### Auth Flow (Better Auth + FastAPI)
+
+1. User logs in → Better Auth issues JWT
+2. Frontend attaches JWT to API requests
+3. FastAPI middleware verifies JWT using shared `BETTER_AUTH_SECRET`
+4. Backend matches token user ID with URL `{user_id}`
+5. All queries filtered by authenticated user
+
+### Security Requirements
+
+- 401 Unauthorized for missing/invalid tokens
+- User isolation: users only access their own tasks
+- Token expiry enforced
+- Ownership verified on every operation
+
+### Development Workflow
+
+Spec-driven development flow:
+1. **Spec** → Define requirements and user stories
+2. **Plan** → Architecture and design decisions
+3. **Tasks** → Break down into testable tasks
+4. **Implement** → Execute with appropriate specialized agent
 
 ## Recent Changes
+- 002-web-app: Added [if applicable, e.g., PostgreSQL, CoreData, files or N/A]
+- 002-web-app: Added [if applicable, e.g., PostgreSQL, CoreData, files or N/A]
 - 001-todo-cli: Implementation complete - all user stories (P1-P4) implemented with full CRUD operations and input validation

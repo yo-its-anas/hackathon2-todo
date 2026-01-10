@@ -1,0 +1,436 @@
+openapi: 3.1.0
+info:
+  title: Todo API
+  description: |
+    RESTful API for multi-user task management with user-scoped data isolation.
+
+    **Authentication**: Not implemented in this phase. The `user_id` path parameter
+    serves as a placeholder for future JWT-based authentication.
+
+    **Data Isolation**: All endpoints filter tasks by `user_id` to ensure users
+    can only access their own tasks.
+  version: 1.0.0
+  contact:
+    name: API Support
+    email: support@example.com
+
+servers:
+  - url: http://localhost:8000
+    description: Local development server
+  - url: https://api.example.com
+    description: Production server (future)
+
+tags:
+  - name: tasks
+    description: Task management operations
+
+paths:
+  /api/{user_id}/tasks:
+    get:
+      tags:
+        - tasks
+      summary: List all tasks for a user
+      description: |
+        Retrieves all tasks belonging to the specified user.
+        Returns an empty array if the user has no tasks.
+      operationId: listTasks
+      parameters:
+        - name: user_id
+          in: path
+          required: true
+          description: User identifier (will be extracted from JWT in future)
+          schema:
+            type: integer
+            example: 1
+      responses:
+        '200':
+          description: List of tasks retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Task'
+              examples:
+                withTasks:
+                  summary: User with tasks
+                  value:
+                    - id: 1
+                      title: Buy groceries
+                      description: Milk, eggs, bread
+                      is_completed: false
+                      created_at: "2026-01-08T10:30:00Z"
+                      updated_at: "2026-01-08T10:30:00Z"
+                      user_id: 1
+                    - id: 2
+                      title: Finish report
+                      description: null
+                      is_completed: true
+                      created_at: "2026-01-07T15:20:00Z"
+                      updated_at: "2026-01-08T09:00:00Z"
+                      user_id: 1
+                noTasks:
+                  summary: User with no tasks
+                  value: []
+
+    post:
+      tags:
+        - tasks
+      summary: Create a new task
+      description: |
+        Creates a new task owned by the specified user.
+        The task is created with `is_completed = false` by default.
+      operationId: createTask
+      parameters:
+        - name: user_id
+          in: path
+          required: true
+          description: User identifier (owner of the task)
+          schema:
+            type: integer
+            example: 1
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TaskCreate'
+            examples:
+              withDescription:
+                summary: Task with description
+                value:
+                  title: Buy groceries
+                  description: Milk, eggs, bread
+              withoutDescription:
+                summary: Task without description
+                value:
+                  title: Call dentist
+      responses:
+        '201':
+          description: Task created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Task'
+              example:
+                id: 3
+                title: Buy groceries
+                description: Milk, eggs, bread
+                is_completed: false
+                created_at: "2026-01-08T11:00:00Z"
+                updated_at: "2026-01-08T11:00:00Z"
+                user_id: 1
+        '400':
+          description: Invalid input (empty title, malformed request)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                emptyTitle:
+                  summary: Empty title
+                  value:
+                    detail: "Title cannot be empty or whitespace"
+                missingTitle:
+                  summary: Missing title field
+                  value:
+                    detail: "Field required: title"
+
+  /api/{user_id}/tasks/{id}:
+    get:
+      tags:
+        - tasks
+      summary: Get task details
+      description: |
+        Retrieves details of a specific task.
+        Returns 404 if the task doesn't exist or doesn't belong to the user.
+      operationId: getTask
+      parameters:
+        - name: user_id
+          in: path
+          required: true
+          description: User identifier
+          schema:
+            type: integer
+            example: 1
+        - name: id
+          in: path
+          required: true
+          description: Task identifier
+          schema:
+            type: integer
+            example: 1
+      responses:
+        '200':
+          description: Task retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Task'
+              example:
+                id: 1
+                title: Buy groceries
+                description: Milk, eggs, bread
+                is_completed: false
+                created_at: "2026-01-08T10:30:00Z"
+                updated_at: "2026-01-08T10:30:00Z"
+                user_id: 1
+        '404':
+          description: Task not found or doesn't belong to user
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                detail: "Task not found"
+
+    put:
+      tags:
+        - tasks
+      summary: Update task
+      description: |
+        Updates a task's title, description, and/or completion status.
+        The `updated_at` timestamp is automatically refreshed.
+        Returns 404 if the task doesn't exist or doesn't belong to the user.
+      operationId: updateTask
+      parameters:
+        - name: user_id
+          in: path
+          required: true
+          description: User identifier
+          schema:
+            type: integer
+            example: 1
+        - name: id
+          in: path
+          required: true
+          description: Task identifier
+          schema:
+            type: integer
+            example: 1
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TaskUpdate'
+            examples:
+              updateTitle:
+                summary: Update title only
+                value:
+                  title: Buy groceries and cook dinner
+              updateAll:
+                summary: Update all fields
+                value:
+                  title: Buy groceries and cook dinner
+                  description: Milk, eggs, bread, chicken
+                  is_completed: false
+      responses:
+        '200':
+          description: Task updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Task'
+              example:
+                id: 1
+                title: Buy groceries and cook dinner
+                description: Milk, eggs, bread, chicken
+                is_completed: false
+                created_at: "2026-01-08T10:30:00Z"
+                updated_at: "2026-01-08T11:15:00Z"
+                user_id: 1
+        '400':
+          description: Invalid input (empty title)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                detail: "Title cannot be empty or whitespace"
+        '404':
+          description: Task not found or doesn't belong to user
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                detail: "Task not found"
+
+    delete:
+      tags:
+        - tasks
+      summary: Delete task
+      description: |
+        Permanently deletes a task (hard delete).
+        Returns 404 if the task doesn't exist or doesn't belong to the user.
+      operationId: deleteTask
+      parameters:
+        - name: user_id
+          in: path
+          required: true
+          description: User identifier
+          schema:
+            type: integer
+            example: 1
+        - name: id
+          in: path
+          required: true
+          description: Task identifier
+          schema:
+            type: integer
+            example: 1
+      responses:
+        '204':
+          description: Task deleted successfully (no content)
+        '404':
+          description: Task not found or doesn't belong to user
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                detail: "Task not found"
+
+  /api/{user_id}/tasks/{id}/complete:
+    patch:
+      tags:
+        - tasks
+      summary: Toggle task completion status
+      description: |
+        Toggles the task's `is_completed` status.
+        If `is_completed = false`, it becomes `true`, and vice versa.
+        The `updated_at` timestamp is automatically refreshed.
+      operationId: toggleComplete
+      parameters:
+        - name: user_id
+          in: path
+          required: true
+          description: User identifier
+          schema:
+            type: integer
+            example: 1
+        - name: id
+          in: path
+          required: true
+          description: Task identifier
+          schema:
+            type: integer
+            example: 1
+      responses:
+        '200':
+          description: Task completion status toggled successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Task'
+              example:
+                id: 1
+                title: Buy groceries
+                description: Milk, eggs, bread
+                is_completed: true
+                created_at: "2026-01-08T10:30:00Z"
+                updated_at: "2026-01-08T12:00:00Z"
+                user_id: 1
+        '404':
+          description: Task not found or doesn't belong to user
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                detail: "Task not found"
+
+components:
+  schemas:
+    Task:
+      type: object
+      required:
+        - id
+        - title
+        - is_completed
+        - created_at
+        - updated_at
+        - user_id
+      properties:
+        id:
+          type: integer
+          description: Unique task identifier
+          example: 1
+        title:
+          type: string
+          minLength: 1
+          maxLength: 255
+          description: Task title (required, non-empty)
+          example: Buy groceries
+        description:
+          type: string
+          nullable: true
+          description: Optional detailed description
+          example: Milk, eggs, bread
+        is_completed:
+          type: boolean
+          description: Completion status
+          example: false
+        created_at:
+          type: string
+          format: date-time
+          description: Timestamp when task was created (UTC)
+          example: "2026-01-08T10:30:00Z"
+        updated_at:
+          type: string
+          format: date-time
+          description: Timestamp when task was last modified (UTC)
+          example: "2026-01-08T10:30:00Z"
+        user_id:
+          type: integer
+          description: Owner user identifier
+          example: 1
+
+    TaskCreate:
+      type: object
+      required:
+        - title
+      properties:
+        title:
+          type: string
+          minLength: 1
+          maxLength: 255
+          description: Task title (required, non-empty)
+          example: Buy groceries
+        description:
+          type: string
+          nullable: true
+          description: Optional detailed description
+          example: Milk, eggs, bread
+
+    TaskUpdate:
+      type: object
+      properties:
+        title:
+          type: string
+          minLength: 1
+          maxLength: 255
+          nullable: true
+          description: New task title (optional)
+          example: Buy groceries and cook dinner
+        description:
+          type: string
+          nullable: true
+          description: New task description (optional)
+          example: Milk, eggs, bread, chicken
+        is_completed:
+          type: boolean
+          nullable: true
+          description: New completion status (optional)
+          example: false
+
+    Error:
+      type: object
+      required:
+        - detail
+      properties:
+        detail:
+          type: string
+          description: Error message
+          example: Task not found

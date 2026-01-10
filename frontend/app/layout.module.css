@@ -1,0 +1,213 @@
+/**
+ * Layout & Navigation Responsive Styles
+ * Mobile-first responsive design with hamburger menu for mobile
+ */
+
+/* Navigation Bar */
+.nav {
+  background-color: var(--color-primary);
+  color: white;
+  padding: var(--spacing-md);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  box-shadow: var(--shadow-md);
+}
+
+@media (min-width: 768px) {
+  .nav {
+    padding: var(--spacing-md) var(--spacing-xl);
+  }
+}
+
+/* Nav Container */
+.navContainer {
+  max-width: 1200px;
+  margin: 0 auto;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+/* App Title/Logo */
+.navTitle {
+  font-size: var(--font-size-lg);
+  font-weight: 700;
+  margin: 0;
+  color: white;
+}
+
+@media (min-width: 768px) {
+  .navTitle {
+    font-size: var(--font-size-2xl);
+  }
+}
+
+/* Hamburger Menu Button (Mobile Only) */
+.hamburgerButton {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-around;
+  width: 32px;
+  height: 32px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  z-index: 101;
+  transition: all var(--transition-fast);
+}
+
+.hamburgerButton:focus {
+  outline: 2px solid white;
+  outline-offset: 4px;
+}
+
+.hamburgerLine {
+  width: 100%;
+  height: 3px;
+  background-color: white;
+  border-radius: 2px;
+  transition: all var(--transition-base);
+}
+
+/* Hamburger Animation when Open */
+.hamburgerButton.open .hamburgerLine:nth-child(1) {
+  transform: rotate(45deg) translateY(11px);
+}
+
+.hamburgerButton.open .hamburgerLine:nth-child(2) {
+  opacity: 0;
+}
+
+.hamburgerButton.open .hamburgerLine:nth-child(3) {
+  transform: rotate(-45deg) translateY(-11px);
+}
+
+/* Hide hamburger on tablet and desktop */
+@media (min-width: 768px) {
+  .hamburgerButton {
+    display: none;
+  }
+}
+
+/* Navigation Links Container */
+.navLinks {
+  display: none; /* Hidden by default on mobile */
+  flex-direction: column;
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background-color: var(--color-primary);
+  padding: var(--spacing-md);
+  box-shadow: var(--shadow-lg);
+  gap: var(--spacing-sm);
+}
+
+/* Show nav links when menu is open (mobile) */
+.navLinks.open {
+  display: flex;
+}
+
+/* Tablet and Desktop: Always show nav links horizontally */
+@media (min-width: 768px) {
+  .navLinks {
+    display: flex;
+    flex-direction: row;
+    position: static;
+    background-color: transparent;
+    padding: 0;
+    box-shadow: none;
+    gap: var(--spacing-md);
+  }
+
+  /* No need for .open on larger screens */
+  .navLinks.open {
+    display: flex;
+  }
+}
+
+@media (min-width: 1024px) {
+  .navLinks {
+    gap: var(--spacing-lg);
+  }
+}
+
+/* Navigation Link */
+.navLink {
+  color: white;
+  text-decoration: none;
+  padding: var(--spacing-sm) var(--spacing-md);
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-base);
+  font-weight: 500;
+  transition: all var(--transition-fast);
+  min-height: var(--touch-target-min);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.navLink:hover {
+  background-color: rgba(255, 255, 255, 0.15);
+  text-decoration: none;
+}
+
+.navLink:focus {
+  outline: 2px solid white;
+  outline-offset: 2px;
+}
+
+@media (min-width: 768px) {
+  .navLink {
+    min-height: auto;
+    padding: var(--spacing-sm) var(--spacing-md);
+    justify-content: flex-start;
+  }
+}
+
+/* Sign Out Button (Highlighted) */
+.signOutButton {
+  background-color: rgba(255, 255, 255, 0.2);
+  color: white;
+  border: none;
+  padding: var(--spacing-sm) var(--spacing-md);
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-base);
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  min-height: var(--touch-target-min);
+  width: 100%;
+  text-align: center;
+}
+
+.signOutButton:hover {
+  background-color: rgba(255, 255, 255, 0.3);
+}
+
+.signOutButton:focus {
+  outline: 2px solid white;
+  outline-offset: 2px;
+}
+
+@media (min-width: 768px) {
+  .signOutButton {
+    width: auto;
+    min-height: auto;
+  }
+}
+
+/* Screen reader only text */
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}

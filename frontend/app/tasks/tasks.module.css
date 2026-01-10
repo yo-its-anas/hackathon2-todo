@@ -1,0 +1,410 @@
+/**
+ * Tasks Page Responsive Styles
+ * Mobile-first responsive design with proper touch targets
+ */
+
+/* Main Container */
+.container {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: var(--spacing-md);
+}
+
+@media (min-width: 768px) {
+  .container {
+    padding: var(--spacing-lg);
+  }
+}
+
+@media (min-width: 1024px) {
+  .container {
+    padding: var(--spacing-xl);
+  }
+}
+
+/* Page Heading */
+.pageHeading {
+  font-size: var(--font-size-2xl);
+  margin-bottom: var(--spacing-lg);
+  color: var(--color-text);
+}
+
+@media (min-width: 768px) {
+  .pageHeading {
+    font-size: var(--font-size-3xl);
+    margin-bottom: var(--spacing-xl);
+  }
+}
+
+/* Create Task Form */
+.createForm {
+  width: 100%;
+  padding: var(--spacing-lg);
+  margin-bottom: var(--spacing-xl);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background-color: var(--color-surface);
+  box-shadow: var(--shadow-sm);
+}
+
+@media (min-width: 768px) {
+  .createForm {
+    padding: var(--spacing-xl);
+    margin-bottom: var(--spacing-2xl);
+  }
+}
+
+.formHeading {
+  font-size: var(--font-size-lg);
+  margin-bottom: var(--spacing-md);
+  color: var(--color-text);
+}
+
+@media (min-width: 768px) {
+  .formHeading {
+    font-size: var(--font-size-xl);
+  }
+}
+
+/* Form Elements */
+.formGroup {
+  margin-bottom: var(--spacing-md);
+}
+
+.formLabel {
+  display: block;
+  margin-bottom: var(--spacing-xs);
+  font-weight: 600;
+  font-size: var(--font-size-sm);
+  color: var(--color-text);
+}
+
+@media (min-width: 768px) {
+  .formLabel {
+    font-size: var(--font-size-base);
+  }
+}
+
+.required {
+  color: var(--color-error);
+}
+
+.formInput,
+.formTextarea {
+  width: 100%;
+  padding: var(--spacing-md);
+  font-size: 16px; /* Prevents iOS zoom on focus */
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  min-height: var(--touch-target-min);
+  transition: all var(--transition-fast);
+}
+
+.formInput:focus,
+.formTextarea:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(0, 112, 243, 0.1);
+}
+
+.formTextarea {
+  resize: vertical;
+  font-family: inherit;
+}
+
+@media (min-width: 768px) {
+  .formInput,
+  .formTextarea {
+    font-size: var(--font-size-base);
+  }
+}
+
+/* Validation Error */
+.validationError {
+  color: var(--color-error);
+  font-size: var(--font-size-sm);
+  margin-bottom: var(--spacing-md);
+  padding: var(--spacing-sm);
+  background-color: #ffebee;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-error);
+}
+
+/* Buttons */
+.submitButton {
+  padding: var(--spacing-md) var(--spacing-lg);
+  background-color: var(--color-primary);
+  color: white;
+  border: none;
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-base);
+  font-weight: 600;
+  min-height: var(--touch-target-min);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  box-shadow: var(--shadow-sm);
+}
+
+.submitButton:hover:not(:disabled) {
+  background-color: var(--color-primary-hover);
+  box-shadow: var(--shadow-md);
+  transform: translateY(-1px);
+}
+
+.submitButton:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.submitButton:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  background-color: var(--color-secondary);
+}
+
+/* Task List Section */
+.taskListSection {
+  margin-top: var(--spacing-xl);
+}
+
+.sectionHeading {
+  font-size: var(--font-size-xl);
+  margin-bottom: var(--spacing-md);
+  color: var(--color-text);
+}
+
+@media (min-width: 768px) {
+  .sectionHeading {
+    font-size: var(--font-size-2xl);
+    margin-bottom: var(--spacing-lg);
+  }
+}
+
+/* Task List Container */
+.taskList {
+  list-style: none;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+}
+
+@media (min-width: 768px) {
+  .taskList {
+    gap: var(--spacing-lg);
+  }
+}
+
+/* Task Item Card */
+.taskItem {
+  padding: var(--spacing-lg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background-color: white;
+  box-shadow: var(--shadow-sm);
+  transition: box-shadow var(--transition-fast);
+}
+
+.taskItem:hover {
+  box-shadow: var(--shadow-md);
+}
+
+@media (min-width: 768px) {
+  .taskItem {
+    padding: var(--spacing-xl);
+  }
+}
+
+/* Task Header */
+.taskHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: var(--spacing-sm);
+  gap: var(--spacing-sm);
+}
+
+.taskTitle {
+  margin: 0 0 var(--spacing-xs) 0;
+  font-size: var(--font-size-base);
+  color: var(--color-text);
+  word-break: break-word;
+  flex: 1;
+}
+
+@media (min-width: 768px) {
+  .taskTitle {
+    font-size: var(--font-size-lg);
+  }
+}
+
+.taskTitleCompleted {
+  text-decoration: line-through;
+  color: var(--color-text-secondary);
+}
+
+.taskDescription {
+  margin: 0 0 var(--spacing-md) 0;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+  line-height: 1.5;
+  word-break: break-word;
+}
+
+@media (min-width: 768px) {
+  .taskDescription {
+    font-size: var(--font-size-base);
+  }
+}
+
+/* Button Groups */
+.buttonGroup {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-sm);
+}
+
+@media (min-width: 768px) {
+  .buttonGroup {
+    gap: var(--spacing-md);
+  }
+}
+
+/* Action Buttons */
+.actionButton {
+  padding: var(--spacing-sm) var(--spacing-md);
+  border: none;
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  min-height: var(--touch-target-min);
+  min-width: var(--touch-target-min);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  box-shadow: var(--shadow-sm);
+}
+
+.actionButton:hover:not(:disabled) {
+  box-shadow: var(--shadow-md);
+  transform: translateY(-1px);
+}
+
+.actionButton:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.actionButton:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+@media (min-width: 768px) {
+  .actionButton {
+    padding: var(--spacing-md) var(--spacing-lg);
+    font-size: var(--font-size-base);
+  }
+}
+
+.completeButton {
+  background-color: var(--color-success);
+  color: white;
+}
+
+.completeButton:hover:not(:disabled) {
+  background-color: #218838;
+}
+
+.undoButton {
+  background-color: var(--color-secondary);
+  color: white;
+}
+
+.undoButton:hover:not(:disabled) {
+  background-color: #555;
+}
+
+.editButton {
+  background-color: var(--color-primary);
+  color: white;
+}
+
+.editButton:hover:not(:disabled) {
+  background-color: var(--color-primary-hover);
+}
+
+.deleteButton {
+  background-color: var(--color-danger);
+  color: white;
+}
+
+.deleteButton:hover:not(:disabled) {
+  background-color: var(--color-danger-hover);
+}
+
+.cancelButton {
+  background-color: var(--color-secondary);
+  color: white;
+}
+
+.cancelButton:hover:not(:disabled) {
+  background-color: #555;
+}
+
+.saveButton {
+  background-color: var(--color-success);
+  color: white;
+}
+
+.saveButton:hover:not(:disabled) {
+  background-color: #218838;
+}
+
+/* Delete Confirmation */
+.deleteConfirmation {
+  padding: var(--spacing-md);
+}
+
+.deleteConfirmText {
+  margin-bottom: var(--spacing-md);
+  font-size: var(--font-size-base);
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.deleteTaskTitle {
+  margin-bottom: var(--spacing-md);
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+}
+
+@media (min-width: 768px) {
+  .deleteTaskTitle {
+    font-size: var(--font-size-base);
+  }
+}
+
+/* Edit Form */
+.editForm {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+}
+
+/* Success Message */
+.successMessage {
+  background-color: #d4edda;
+  border: 1px solid #28a745;
+  border-radius: var(--radius-sm);
+  padding: var(--spacing-md);
+  margin-bottom: var(--spacing-md);
+  color: #155724;
+  font-size: var(--font-size-sm);
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+}
+
+@media (min-width: 768px) {
+  .successMessage {
+    font-size: var(--font-size-base);
+  }
+}
