@@ -5,7 +5,7 @@ Provides JWT token verification and user identity extraction using
 Better Auth's JWKS endpoint for EdDSA token verification.
 """
 import os
-from typing import Optional
+from typing import Any, Dict, Optional
 
 import jwt
 from jwt import PyJWKClient
