@@ -1,19 +1,22 @@
 "use client"
 
 /**
- * Sign In Page - Responsive Authentication Form
+ * Sign In Page (T029) - Animated Authentication Form
  *
  * Features:
+ * - Form entry animation
  * - Mobile-first responsive design
  * - Session expiry handling
  * - Form validation
  * - Loading states
- * - Error messaging
+ * - Error messaging with animations
  */
 
 import { authClient } from "@/lib/auth-client"
 import { useState, useEffect, Suspense } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
+import { motion, AnimatePresence } from "motion/react"
+import { durations, easings } from "@/lib/motion-config"
 import styles from "../auth.module.css"
 
 function SignInForm() {
@@ -25,7 +28,7 @@ function SignInForm() {
   const [loading, setLoading] = useState(false)
   const [sessionExpiredMessage, setSessionExpiredMessage] = useState("")
 
-  // Check for session expiry on mount - T052
+  // Check for session expiry on mount
   useEffect(() => {
     const expired = searchParams.get("expired")
     const sessionExpired = sessionStorage.getItem("sessionExpired")
@@ -64,18 +67,56 @@ function SignInForm() {
   }
 
   return (
-    <div className={styles.authContainer}>
-      <div className={styles.authCard}>
-        <h1 className={styles.authHeading}>Sign In</h1>
+    <motion.div
+      className={styles.authContainer}
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: durations.base }}
+    >
+      <motion.div
+        className={styles.authCard}
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: durations.base, delay: 0.1, ease: easings.easeOut }}
+      >
+        <motion.h1
+          className={styles.authHeading}
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: durations.fast, delay: 0.15 }}
+        >
+          Sign In
+        </motion.h1>
 
-        {sessionExpiredMessage && (
-          <div className={styles.warningMessage} role="alert" aria-live="assertive">
-            {sessionExpiredMessage}
-          </div>
-        )}
+        <AnimatePresence>
+          {sessionExpiredMessage && (
+            <motion.div
+              className={styles.warningMessage}
+              role="alert"
+              aria-live="assertive"
+              initial={{ opacity: 0, height: 0, marginBottom: 0 }}
+              animate={{ opacity: 1, height: "auto", marginBottom: "var(--spacing-md)" }}
+              exit={{ opacity: 0, height: 0, marginBottom: 0 }}
+              transition={{ duration: durations.fast }}
+            >
+              {sessionExpiredMessage}
+            </motion.div>
+          )}
+        </AnimatePresence>
 
-        <form onSubmit={handleSubmit} className={styles.authForm}>
-          <div className={styles.formGroup}>
+        <motion.form
+          onSubmit={handleSubmit}
+          className={styles.authForm}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: durations.fast, delay: 0.2 }}
+        >
+          <motion.div
+            className={styles.formGroup}
+            initial={{ opacity: 0, x: -10 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: durations.fast, delay: 0.25 }}
+          >
             <label htmlFor="email">Email</label>
             <input
               id="email"
@@ -86,9 +127,14 @@ function SignInForm() {
               className={styles.formInput}
               autoComplete="email"
             />
-          </div>
+          </motion.div>
 
-          <div className={styles.formGroup}>
+          <motion.div
+            className={styles.formGroup}
+            initial={{ opacity: 0, x: -10 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: durations.fast, delay: 0.3 }}
+          >
             <label htmlFor="password">Password</label>
             <input
               id="password"
@@ -99,35 +145,59 @@ function SignInForm() {
               className={styles.formInput}
               autoComplete="current-password"
             />
-          </div>
+          </motion.div>
 
-          {error && (
-            <div className={styles.errorMessage} role="alert" aria-live="assertive">
-              {error}
-            </div>
-          )}
+          <AnimatePresence>
+            {error && (
+              <motion.div
+                className={styles.errorMessage}
+                role="alert"
+                aria-live="assertive"
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: "auto" }}
+                exit={{ opacity: 0, height: 0 }}
+                transition={{ duration: durations.fast }}
+              >
+                {error}
+              </motion.div>
+            )}
+          </AnimatePresence>
 
-          <button
+          <motion.button
             type="submit"
             disabled={loading}
             className={`${styles.submitButton} ${loading ? styles.loading : ""}`}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: durations.fast, delay: 0.35 }}
+            whileHover={{ scale: 1.01 }}
+            whileTap={{ scale: 0.99 }}
           >
             {loading ? "Signing in..." : "Sign In"}
-          </button>
-        </form>
+          </motion.button>
+        </motion.form>
 
-        <p className={styles.authFooter}>
+        <motion.p
+          className={styles.authFooter}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: durations.fast, delay: 0.4 }}
+        >
           Don&apos;t have an account?{" "}
           <a href="/auth/signup">Sign up</a>
-        </p>
-      </div>
-    </div>
+        </motion.p>
+      </motion.div>
+    </motion.div>
   )
 }
 
 export default function SignInPage() {
   return (
-    <Suspense fallback={<div className={styles.authContainer}><div className={styles.authCard}>Loading...</div></div>}>
+    <Suspense fallback={
+      <div className={styles.authContainer}>
+        <div className={styles.authCard}>Loading...</div>
+      </div>
+    }>
       <SignInForm />
     </Suspense>
   )

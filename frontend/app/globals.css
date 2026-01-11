@@ -242,3 +242,34 @@ input[type="button"] {
 .fade-in {
   animation: fadeIn var(--transition-base);
 }
+
+/* ============================================
+   Reduced Motion Support (T004)
+   Respects user's motion preferences
+   ============================================ */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  /* Preserve opacity animations for reduced motion users */
+  .motion-safe-opacity {
+    transition-duration: var(--transition-fast) !important;
+  }
+}
+
+/* Motion-safe utility classes */
+@media (prefers-reduced-motion: no-preference) {
+  .motion-safe {
+    transition: all var(--transition-base);
+  }
+
+  .motion-safe-transform {
+    transition: transform var(--transition-base), opacity var(--transition-base);
+  }
+}

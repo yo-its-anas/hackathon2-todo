@@ -1,11 +1,12 @@
 "use client"
 
 /**
- * Sign Up Page - Responsive Registration Form
+ * Sign Up Page (T030) - Animated Registration Form
  *
  * Features:
+ * - Form entry animation
  * - Mobile-first responsive design
- * - Form validation
+ * - Form validation with animated feedback
  * - Loading states
  * - Error messaging
  * - Password strength requirements
@@ -14,6 +15,8 @@
 import { authClient } from "@/lib/auth-client"
 import { useState } from "react"
 import { useRouter } from "next/navigation"
+import { motion, AnimatePresence } from "motion/react"
+import { durations, easings } from "@/lib/motion-config"
 import styles from "../auth.module.css"
 
 export default function SignUpPage() {
@@ -86,12 +89,40 @@ export default function SignUpPage() {
   }
 
   return (
-    <div className={styles.authContainer}>
-      <div className={styles.authCard}>
-        <h1 className={styles.authHeading}>Sign Up</h1>
+    <motion.div
+      className={styles.authContainer}
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: durations.base }}
+    >
+      <motion.div
+        className={styles.authCard}
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: durations.base, delay: 0.1, ease: easings.easeOut }}
+      >
+        <motion.h1
+          className={styles.authHeading}
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: durations.fast, delay: 0.15 }}
+        >
+          Sign Up
+        </motion.h1>
 
-        <form onSubmit={handleSubmit} className={styles.authForm}>
-          <div className={styles.formGroup}>
+        <motion.form
+          onSubmit={handleSubmit}
+          className={styles.authForm}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: durations.fast, delay: 0.2 }}
+        >
+          <motion.div
+            className={styles.formGroup}
+            initial={{ opacity: 0, x: -10 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: durations.fast, delay: 0.25 }}
+          >
             <label htmlFor="name">Name</label>
             <input
               id="name"
@@ -102,9 +133,14 @@ export default function SignUpPage() {
               className={styles.formInput}
               autoComplete="name"
             />
-          </div>
+          </motion.div>
 
-          <div className={styles.formGroup}>
+          <motion.div
+            className={styles.formGroup}
+            initial={{ opacity: 0, x: -10 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: durations.fast, delay: 0.3 }}
+          >
             <label htmlFor="email">Email</label>
             <input
               id="email"
@@ -115,9 +151,14 @@ export default function SignUpPage() {
               className={styles.formInput}
               autoComplete="email"
             />
-          </div>
+          </motion.div>
 
-          <div className={styles.formGroup}>
+          <motion.div
+            className={styles.formGroup}
+            initial={{ opacity: 0, x: -10 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: durations.fast, delay: 0.35 }}
+          >
             <label htmlFor="password">Password</label>
             <input
               id="password"
@@ -129,37 +170,66 @@ export default function SignUpPage() {
               className={styles.formInput}
               autoComplete="new-password"
             />
-            {password && passwordValidation.length > 0 && (
-              <div
-                style={{
-                  marginTop: "var(--spacing-xs)",
-                  fontSize: "var(--font-size-sm)",
-                  color: "var(--color-text-secondary)",
-                }}
+            <AnimatePresence>
+              {password && passwordValidation.length > 0 && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: "auto" }}
+                  exit={{ opacity: 0, height: 0 }}
+                  transition={{ duration: durations.fast }}
+                  style={{
+                    marginTop: "var(--spacing-xs)",
+                    fontSize: "var(--font-size-sm)",
+                    color: "var(--color-text-secondary)",
+                    overflow: "hidden",
+                  }}
+                >
+                  Password must contain: {passwordValidation.join(", ")}
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </motion.div>
+
+          <AnimatePresence>
+            {error && (
+              <motion.div
+                className={styles.errorMessage}
+                role="alert"
+                aria-live="assertive"
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: "auto" }}
+                exit={{ opacity: 0, height: 0 }}
+                transition={{ duration: durations.fast }}
               >
-                Password must contain: {passwordValidation.join(", ")}
-              </div>
+                {error}
+              </motion.div>
             )}
-          </div>
+          </AnimatePresence>
 
-          {error && (
-            <div className={styles.errorMessage}>{error}</div>
-          )}
-
-          <button
+          <motion.button
             type="submit"
             disabled={loading}
             className={`${styles.submitButton} ${loading ? styles.loading : ""}`}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: durations.fast, delay: 0.4 }}
+            whileHover={{ scale: 1.01 }}
+            whileTap={{ scale: 0.99 }}
           >
             {loading ? "Signing up..." : "Sign Up"}
-          </button>
-        </form>
+          </motion.button>
+        </motion.form>
 
-        <p className={styles.authFooter}>
+        <motion.p
+          className={styles.authFooter}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: durations.fast, delay: 0.45 }}
+        >
           Already have an account?{" "}
           <a href="/auth/signin">Sign in</a>
-        </p>
-      </div>
-    </div>
+        </motion.p>
+      </motion.div>
+    </motion.div>
   )
 }

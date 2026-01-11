@@ -1,5 +1,5 @@
 /**
- * Root Layout - Responsive Navigation
+ * Root Layout - Responsive Navigation with Motion
  *
  * Features:
  * - Mobile-first responsive design
@@ -7,12 +7,14 @@
  * - Sticky navigation bar
  * - Accessible navigation with ARIA labels
  * - Offline detection warning
+ * - MotionConfig for global animation settings
  */
 
 import type { Metadata, Viewport } from 'next'
 import './globals.css'
 import Navigation from './Navigation'
 import OfflineWarning from '@/components/OfflineWarning'
+import MotionProvider from '@/components/motion/MotionProvider'
 
 export const metadata: Metadata = {
   title: 'Todo App',
@@ -33,9 +35,11 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body>
-        <Navigation />
-        <OfflineWarning />
-        {children}
+        <MotionProvider>
+          <Navigation />
+          <OfflineWarning />
+          {children}
+        </MotionProvider>
       </body>
     </html>
   )

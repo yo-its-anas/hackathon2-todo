@@ -1,7 +1,7 @@
 "use client"
 
 /**
- * Tasks Page - Complete Task Management UI
+ * Tasks Page - Complete Task Management UI with Animations
  *
  * Features:
  * - Create, view, edit, delete, toggle completion
@@ -12,9 +12,11 @@
  * - Inline error messages
  * - Reverse chronological order (newest first)
  * - Responsive CSS modules styling
+ * - Smooth animations for CRUD operations (T009-T016)
  */
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
+import { motion, AnimatePresence } from "motion/react"
 import { authClient } from "@/lib/auth-client"
 import {
   getAllTasks,
@@ -24,9 +26,11 @@ import {
   deleteTask,
   type Task,
 } from "@/services/tasks"
+import { durations, easings, variants, listItemTransition } from "@/lib/motion-config"
 import LoadingSpinner from "@/components/LoadingSpinner"
 import ErrorMessage from "@/components/ErrorMessage"
 import EmptyState from "@/components/EmptyState"
+import Toast from "@/components/Toast"
 import styles from "./tasks.module.css"
 
 export default function TasksPage() {
@@ -50,7 +54,9 @@ export default function TasksPage() {
   const [error, setError] = useState("")
   const [validationError, setValidationError] = useState("")
   const [deletingTaskId, setDeletingTaskId] = useState<number | null>(null)
-  const [successMessage, setSuccessMessage] = useState("")
+
+  // Toast state
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null)
 
   useEffect(() => {
     // Fetch session using async getSession method
@@ -87,10 +93,13 @@ export default function TasksPage() {
     }
   }
 
-  const showSuccess = (message: string) => {
-    setSuccessMessage(message)
-    setTimeout(() => setSuccessMessage(""), 3000)
-  }
+  const showToast = useCallback((message: string, type: 'success' | 'error' | 'info' = 'success') => {
+    setToast({ message, type })
+  }, [])
+
+  const hideToast = useCallback(() => {
+    setToast(null)
+  }, [])
 
   const validateTaskTitle = (title: string): string | null => {
     const trimmed = title.trim()
@@ -126,9 +135,10 @@ export default function TasksPage() {
       setNewTaskTitle("")
       setNewTaskDescription("")
       setError("")
-      showSuccess("Task created successfully!")
+      showToast("Task created successfully!")
     } catch (err) {
       setError("Failed to create task")
+      showToast("Failed to create task", "error")
       console.error(err)
     } finally {
       setOperationLoading({ ...operationLoading, create: false })
@@ -172,9 +182,10 @@ export default function TasksPage() {
       setEditTitle("")
       setEditDescription("")
       setError("")
-      showSuccess("Task updated successfully!")
+      showToast("Task updated successfully!")
     } catch (err) {
       setError("Failed to update task")
+      showToast("Failed to update task", "error")
       console.error(err)
     } finally {
       setOperationLoading({ ...operationLoading, [`edit-${taskId}`]: false })
@@ -190,9 +201,10 @@ export default function TasksPage() {
       const updatedTask = await toggleComplete(userId, taskId)
       setTasks(tasks.map((t) => (t.id === taskId ? updatedTask : t)))
       setError("")
-      showSuccess(updatedTask.is_completed ? "Task completed!" : "Task reopened!")
+      showToast(updatedTask.is_completed ? "Task completed!" : "Task reopened!")
     } catch (err) {
       setError("Failed to toggle task")
+      showToast("Failed to toggle task", "error")
       console.error(err)
     } finally {
       setOperationLoading({ ...operationLoading, [`toggle-${taskId}`]: false })
@@ -217,9 +229,10 @@ export default function TasksPage() {
       setTasks(tasks.filter((t) => t.id !== taskId))
       setDeletingTaskId(null)
       setError("")
-      showSuccess("Task deleted successfully!")
+      showToast("Task deleted successfully!")
     } catch (err) {
       setError("Failed to delete task")
+      showToast("Failed to delete task", "error")
       console.error(err)
     } finally {
       setOperationLoading({ ...operationLoading, [`delete-${taskId}`]: false })
@@ -232,24 +245,60 @@ export default function TasksPage() {
 
   return (
     <div className={styles.container}>
-      <h1 className={styles.pageHeading}>My Tasks</h1>
+      {/* Toast Notification */}
+      <Toast
+        message={toast?.message || ""}
+        type={toast?.type || "success"}
+        isVisible={!!toast}
+        onClose={hideToast}
+      />
 
-      {error && <ErrorMessage message={error} onRetry={() => userId && loadTasks(userId)} />}
-      {successMessage && (
-        <div className={styles.successMessage} role="status" aria-live="polite">
-          ✓ {successMessage}
-        </div>
-      )}
+      <motion.h1
+        className={styles.pageHeading}
+        initial={{ opacity: 0, y: -10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: durations.base, ease: easings.easeOut }}
+      >
+        My Tasks
+      </motion.h1>
+
+      <AnimatePresence>
+        {error && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: durations.fast }}
+          >
+            <ErrorMessage message={error} onRetry={() => userId && loadTasks(userId)} />
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Create Task Form */}
-      <form onSubmit={handleCreateTask} className={styles.createForm}>
+      <motion.form
+        onSubmit={handleCreateTask}
+        className={styles.createForm}
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: durations.base, delay: 0.1, ease: easings.easeOut }}
+      >
         <h2 className={styles.formHeading}>Create New Task</h2>
 
-        {validationError && (
-          <div className={styles.validationError} role="alert">
-            {validationError}
-          </div>
-        )}
+        <AnimatePresence>
+          {validationError && (
+            <motion.div
+              className={styles.validationError}
+              role="alert"
+              initial={{ opacity: 0, height: 0, marginBottom: 0 }}
+              animate={{ opacity: 1, height: "auto", marginBottom: "var(--spacing-md)" }}
+              exit={{ opacity: 0, height: 0, marginBottom: 0 }}
+              transition={{ duration: durations.fast }}
+            >
+              {validationError}
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         <div className={styles.formGroup}>
           <label htmlFor="new-task-title" className={styles.formLabel}>
@@ -284,155 +333,242 @@ export default function TasksPage() {
           />
         </div>
 
-        <button
+        <motion.button
           type="submit"
           disabled={operationLoading.create}
           className={styles.submitButton}
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.98 }}
+          transition={{ duration: durations.micro }}
         >
           {operationLoading.create ? "Creating..." : "Add Task"}
-        </button>
-      </form>
+        </motion.button>
+      </motion.form>
 
       {/* Task List */}
-      <div className={styles.taskListSection}>
+      <motion.div
+        className={styles.taskListSection}
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: durations.base, delay: 0.2 }}
+      >
         <h2 className={styles.sectionHeading}>
           All Tasks ({tasks.length})
         </h2>
 
         {tasks.length === 0 ? (
-          <EmptyState
-            icon="📝"
-            title="No tasks yet"
-            message="Start by creating your first task above to get organized!"
-          />
+          <motion.div
+            initial={variants.fadeIn.initial}
+            animate={variants.fadeIn.animate}
+            transition={{ duration: durations.base }}
+          >
+            <EmptyState
+              icon="📝"
+              title="No tasks yet"
+              message="Start by creating your first task above to get organized!"
+            />
+          </motion.div>
         ) : (
-          <ul className={styles.taskList}>
-            {tasks.map((task) => (
-              <li key={task.id} className={styles.taskItem}>
-                {editingTaskId === task.id ? (
-                  /* Edit Mode */
-                  <div className={styles.editForm}>
-                    {validationError && (
-                      <div className={styles.validationError} role="alert">
-                        {validationError}
-                      </div>
+          <ul className={styles.taskList} aria-live="polite">
+            <AnimatePresence mode="popLayout">
+              {tasks.map((task) => (
+                <motion.li
+                  key={task.id}
+                  className={styles.taskItem}
+                  layout
+                  initial={listItemTransition.initial}
+                  animate={listItemTransition.animate}
+                  exit={listItemTransition.exit}
+                  transition={{
+                    ...listItemTransition.transition,
+                    layout: { duration: durations.fast, ease: easings.easeInOut },
+                  }}
+                >
+                  <AnimatePresence mode="wait">
+                    {editingTaskId === task.id ? (
+                      /* Edit Mode */
+                      <motion.div
+                        key="edit"
+                        className={styles.editForm}
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        transition={{ duration: durations.fast }}
+                      >
+                        <AnimatePresence>
+                          {validationError && (
+                            <motion.div
+                              className={styles.validationError}
+                              role="alert"
+                              initial={{ opacity: 0, height: 0 }}
+                              animate={{ opacity: 1, height: "auto" }}
+                              exit={{ opacity: 0, height: 0 }}
+                              transition={{ duration: durations.fast }}
+                            >
+                              {validationError}
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
+
+                        <div className={styles.formGroup}>
+                          <label className={styles.formLabel}>
+                            Title <span className={styles.required}>*</span>
+                          </label>
+                          <input
+                            type="text"
+                            value={editTitle}
+                            onChange={(e) => {
+                              setEditTitle(e.target.value)
+                              setValidationError("")
+                            }}
+                            maxLength={255}
+                            className={styles.formInput}
+                          />
+                        </div>
+
+                        <div className={styles.formGroup}>
+                          <label className={styles.formLabel}>Description</label>
+                          <textarea
+                            value={editDescription}
+                            onChange={(e) => setEditDescription(e.target.value)}
+                            rows={3}
+                            className={styles.formTextarea}
+                          />
+                        </div>
+
+                        <div className={styles.buttonGroup}>
+                          <motion.button
+                            onClick={() => handleSaveEdit(task.id)}
+                            disabled={operationLoading[`edit-${task.id}`]}
+                            className={`${styles.actionButton} ${styles.saveButton}`}
+                            whileHover={{ scale: 1.02 }}
+                            whileTap={{ scale: 0.98 }}
+                          >
+                            {operationLoading[`edit-${task.id}`] ? "Saving..." : "Save"}
+                          </motion.button>
+                          <motion.button
+                            onClick={handleCancelEdit}
+                            className={`${styles.actionButton} ${styles.cancelButton}`}
+                            whileHover={{ scale: 1.02 }}
+                            whileTap={{ scale: 0.98 }}
+                          >
+                            Cancel
+                          </motion.button>
+                        </div>
+                      </motion.div>
+                    ) : deletingTaskId === task.id ? (
+                      /* Delete Confirmation */
+                      <motion.div
+                        key="delete"
+                        className={styles.deleteConfirmation}
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        transition={{ duration: durations.fast }}
+                      >
+                        <p className={styles.deleteConfirmText}>
+                          Are you sure you want to delete this task?
+                        </p>
+                        <p className={styles.deleteTaskTitle}>{task.title}</p>
+                        <div className={styles.buttonGroup}>
+                          <motion.button
+                            onClick={() => handleConfirmDelete(task.id)}
+                            disabled={operationLoading[`delete-${task.id}`]}
+                            className={`${styles.actionButton} ${styles.deleteButton}`}
+                            whileHover={{ scale: 1.02 }}
+                            whileTap={{ scale: 0.98 }}
+                          >
+                            {operationLoading[`delete-${task.id}`] ? "Deleting..." : "Yes, Delete"}
+                          </motion.button>
+                          <motion.button
+                            onClick={handleCancelDelete}
+                            className={`${styles.actionButton} ${styles.cancelButton}`}
+                            whileHover={{ scale: 1.02 }}
+                            whileTap={{ scale: 0.98 }}
+                          >
+                            Cancel
+                          </motion.button>
+                        </div>
+                      </motion.div>
+                    ) : (
+                      /* View Mode */
+                      <motion.div
+                        key="view"
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        transition={{ duration: durations.fast }}
+                      >
+                        <motion.h3
+                          className={`${styles.taskTitle} ${
+                            task.is_completed ? styles.taskTitleCompleted : ""
+                          }`}
+                          animate={{
+                            opacity: task.is_completed ? 0.7 : 1,
+                          }}
+                          transition={{ duration: durations.fast }}
+                        >
+                          <motion.span
+                            initial={false}
+                            animate={{
+                              scale: task.is_completed ? [1, 1.2, 1] : 1,
+                            }}
+                            transition={{ duration: durations.fast }}
+                          >
+                            {task.is_completed ? "✓ " : "○ "}
+                          </motion.span>
+                          {task.title}
+                        </motion.h3>
+
+                        {task.description && (
+                          <p className={styles.taskDescription}>{task.description}</p>
+                        )}
+
+                        <div className={styles.buttonGroup}>
+                          <motion.button
+                            onClick={() => handleToggleComplete(task.id)}
+                            disabled={operationLoading[`toggle-${task.id}`]}
+                            className={`${styles.actionButton} ${
+                              task.is_completed ? styles.undoButton : styles.completeButton
+                            }`}
+                            whileHover={{ scale: 1.02 }}
+                            whileTap={{ scale: 0.98 }}
+                            aria-label={task.is_completed ? "Mark as incomplete" : "Mark as complete"}
+                          >
+                            {operationLoading[`toggle-${task.id}`]
+                              ? "..."
+                              : task.is_completed
+                              ? "Undo"
+                              : "Complete"}
+                          </motion.button>
+                          <motion.button
+                            onClick={() => handleEditClick(task)}
+                            className={`${styles.actionButton} ${styles.editButton}`}
+                            whileHover={{ scale: 1.02 }}
+                            whileTap={{ scale: 0.98 }}
+                            aria-label="Edit task"
+                          >
+                            Edit
+                          </motion.button>
+                          <motion.button
+                            onClick={() => handleDeleteClick(task.id)}
+                            className={`${styles.actionButton} ${styles.deleteButton}`}
+                            whileHover={{ scale: 1.02 }}
+                            whileTap={{ scale: 0.98 }}
+                            aria-label="Delete task"
+                          >
+                            Delete
+                          </motion.button>
+                        </div>
+                      </motion.div>
                     )}
-
-                    <div className={styles.formGroup}>
-                      <label className={styles.formLabel}>
-                        Title <span className={styles.required}>*</span>
-                      </label>
-                      <input
-                        type="text"
-                        value={editTitle}
-                        onChange={(e) => {
-                          setEditTitle(e.target.value)
-                          setValidationError("")
-                        }}
-                        maxLength={255}
-                        className={styles.formInput}
-                      />
-                    </div>
-
-                    <div className={styles.formGroup}>
-                      <label className={styles.formLabel}>Description</label>
-                      <textarea
-                        value={editDescription}
-                        onChange={(e) => setEditDescription(e.target.value)}
-                        rows={3}
-                        className={styles.formTextarea}
-                      />
-                    </div>
-
-                    <div className={styles.buttonGroup}>
-                      <button
-                        onClick={() => handleSaveEdit(task.id)}
-                        disabled={operationLoading[`edit-${task.id}`]}
-                        className={`${styles.actionButton} ${styles.saveButton}`}
-                      >
-                        {operationLoading[`edit-${task.id}`] ? "Saving..." : "Save"}
-                      </button>
-                      <button
-                        onClick={handleCancelEdit}
-                        className={`${styles.actionButton} ${styles.cancelButton}`}
-                      >
-                        Cancel
-                      </button>
-                    </div>
-                  </div>
-                ) : deletingTaskId === task.id ? (
-                  /* Delete Confirmation */
-                  <div className={styles.deleteConfirmation}>
-                    <p className={styles.deleteConfirmText}>
-                      Are you sure you want to delete this task?
-                    </p>
-                    <p className={styles.deleteTaskTitle}>{task.title}</p>
-                    <div className={styles.buttonGroup}>
-                      <button
-                        onClick={() => handleConfirmDelete(task.id)}
-                        disabled={operationLoading[`delete-${task.id}`]}
-                        className={`${styles.actionButton} ${styles.deleteButton}`}
-                      >
-                        {operationLoading[`delete-${task.id}`] ? "Deleting..." : "Yes, Delete"}
-                      </button>
-                      <button
-                        onClick={handleCancelDelete}
-                        className={`${styles.actionButton} ${styles.cancelButton}`}
-                      >
-                        Cancel
-                      </button>
-                    </div>
-                  </div>
-                ) : (
-                  /* View Mode */
-                  <div>
-                    <h3
-                      className={`${styles.taskTitle} ${
-                        task.is_completed ? styles.taskTitleCompleted : ""
-                      }`}
-                    >
-                      {task.is_completed ? "✓ " : "○ "}
-                      {task.title}
-                    </h3>
-
-                    {task.description && (
-                      <p className={styles.taskDescription}>{task.description}</p>
-                    )}
-
-                    <div className={styles.buttonGroup}>
-                      <button
-                        onClick={() => handleToggleComplete(task.id)}
-                        disabled={operationLoading[`toggle-${task.id}`]}
-                        className={`${styles.actionButton} ${
-                          task.is_completed ? styles.undoButton : styles.completeButton
-                        }`}
-                      >
-                        {operationLoading[`toggle-${task.id}`]
-                          ? "..."
-                          : task.is_completed
-                          ? "Undo"
-                          : "Complete"}
-                      </button>
-                      <button
-                        onClick={() => handleEditClick(task)}
-                        className={`${styles.actionButton} ${styles.editButton}`}
-                      >
-                        Edit
-                      </button>
-                      <button
-                        onClick={() => handleDeleteClick(task.id)}
-                        className={`${styles.actionButton} ${styles.deleteButton}`}
-                      >
-                        Delete
-                      </button>
-                    </div>
-                  </div>
-                )}
-              </li>
-            ))}
+                  </AnimatePresence>
+                </motion.li>
+              ))}
+            </AnimatePresence>
           </ul>
         )}
-      </div>
+      </motion.div>
     </div>
   )
 }

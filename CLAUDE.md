@@ -217,6 +217,7 @@ Specialized agents are available for different concerns. Route work appropriatel
 - **Frontend Agent** (`nextjs-frontend-builder`) → Next.js 16+ App Router UI development
 - **DB Agent** (`neon-db-architect`) → Neon Serverless PostgreSQL + SQLModel schema design
 - **Backend Agent** (`fastapi-spec-enforcer`) → FastAPI REST API implementation
+- **UI/UX Agent** (`ui-ux-motion-refiner`) → Visual polish, animations, accessibility, and design system refinement (no business logic changes)
 
 ## Project: Multi-User Todo Web App
 
@@ -267,6 +268,10 @@ Spec-driven development flow:
 4. **Implement** → Execute with appropriate specialized agent
 
 ## Recent Changes
+- 003-ui-ux-polish: Added TypeScript 5.6+ / React 19 / Next.js 15 + Motion for React (~18kb), existing CSS Modules
 - 002-web-app: Added [if applicable, e.g., PostgreSQL, CoreData, files or N/A]
 - 002-web-app: Added [if applicable, e.g., PostgreSQL, CoreData, files or N/A]
-- 001-todo-cli: Implementation complete - all user stories (P1-P4) implemented with full CRUD operations and input validation
+
+## Active Technologies
+- TypeScript 5.6+ / React 19 / Next.js 15 + Motion for React (~18kb), existing CSS Modules (003-ui-ux-polish)
+- N/A (no data model changes) (003-ui-ux-polish)
