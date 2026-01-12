@@ -1,0 +1,51 @@
+# Git
+.git
+.gitignore
+
+# Python
+__pycache__
+*.py[cod]
+*$py.class
+*.so
+.Python
+.pytest_cache
+.coverage
+htmlcov/
+.tox/
+.nox/
+*.egg-info/
+.eggs/
+dist/
+build/
+
+# Virtual environments
+venv/
+.venv/
+ENV/
+env/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Environment files (secrets injected via HF)
+.env
+.env.*
+*.env
+
+# Tests (not needed in production image)
+tests/
+test_*.py
+*_test.py
+conftest.py
+
+# Documentation
+*.md
+docs/
+
+# Misc
+*.log
+.DS_Store
+Thumbs.db

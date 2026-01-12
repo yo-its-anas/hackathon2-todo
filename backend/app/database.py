@@ -18,11 +18,14 @@ DATABASE_URL = os.getenv("DATABASE_URL")
 if not DATABASE_URL:
     raise ValueError("DATABASE_URL environment variable is not set")
 
+# SQL echo configuration (disable in production for performance)
+SQL_ECHO = os.getenv("SQL_ECHO", "false").lower() in ("true", "1", "yes")
+
 # Create engine with connection pooling
 # Neon PostgreSQL requires pooled connections for serverless
 engine = create_engine(
     DATABASE_URL,
-    echo=True,  # Log SQL queries (disable in production)
+    echo=SQL_ECHO,  # Log SQL queries (controlled via SQL_ECHO env var)
     pool_pre_ping=True,  # Verify connections before using
 )
 

@@ -1,4 +1,13 @@
-# Todo REST API - Backend
+---
+title: Todo App Backend API
+emoji: 🧠
+colorFrom: blue
+colorTo: purple
+sdk: docker
+pinned: false
+---
+
+# Todo Backend API
 
 Multi-user todo application with persistent storage using FastAPI, SQLModel, and Neon PostgreSQL.
 
@@ -251,6 +260,7 @@ backend/
 │   └── test_tasks.py        # API integration tests
 ├── requirements.txt         # Python dependencies
 ├── .env.example            # Environment variable template
+├── Dockerfile              # Docker container for Hugging Face deployment
 └── README.md               # This file
 ```
 
