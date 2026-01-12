@@ -79,8 +79,10 @@ frontend/
 │   ├── auth.ts              # Better Auth server config
 │   ├── auth-client.ts       # Better Auth client
 │   └── api-client.ts        # Authenticated fetch wrapper
-└── services/                # API service layer
-    └── tasks.ts             # Task CRUD methods
+├── services/                # API service layer
+│   └── tasks.ts             # Task CRUD methods
+├── next.config.ts           # Webpack alias for @/* path resolution
+└── tsconfig.json            # TypeScript config with baseUrl + paths
 
 ## API Integration
 
