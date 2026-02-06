@@ -13,6 +13,7 @@
  */
 
 import { authClient } from "@/lib/auth-client"
+import { storeToken, clearToken } from "@/lib/token-manager"
 import { useState, useEffect, Suspense } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { motion, AnimatePresence } from "motion/react"
@@ -45,6 +46,9 @@ function SignInForm() {
     setLoading(true)
 
     try {
+      // Clear any stale token before login
+      clearToken()
+
       const { data, error } = await authClient.signIn.email({
         email,
         password,
@@ -56,6 +60,12 @@ function SignInForm() {
       }
 
       if (data) {
+        // Get JWT token and store it for stateless API auth
+        const { data: tokenData } = await authClient.token()
+        if (tokenData?.token) {
+          storeToken(tokenData.token, 86400) // 24 hours
+        }
+
         // Notify navigation of auth state change
         window.dispatchEvent(new Event("auth-state-change"))
         // Redirect to tasks page on successful sign in

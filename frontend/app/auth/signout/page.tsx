@@ -11,6 +11,7 @@
 
 import { useEffect } from "react"
 import { authClient } from "@/lib/auth-client"
+import { clearToken } from "@/lib/token-manager"
 import { useRouter } from "next/navigation"
 import LoadingSpinner from "@/components/LoadingSpinner"
 
@@ -20,6 +21,9 @@ export default function SignOutPage() {
   useEffect(() => {
     const handleSignOut = async () => {
       try {
+        // Clear cached JWT token first (stateless cleanup)
+        clearToken()
+
         // Call Better Auth sign out
         await authClient.signOut()
 
@@ -30,6 +34,8 @@ export default function SignOutPage() {
         router.push("/auth/signin")
       } catch (error) {
         console.error("Sign out error:", error)
+        // Ensure token is cleared even on error
+        clearToken()
         // Even if sign out fails, redirect to sign-in
         router.push("/auth/signin")
       }

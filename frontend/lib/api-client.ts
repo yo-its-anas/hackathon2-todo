@@ -2,14 +2,15 @@
  * API Client with JWT Authentication and Comprehensive Error Handling
  *
  * Fetch wrapper that:
- * - Attaches JWT tokens to API requests
- * - Handles 401 responses by redirecting to sign-in
+ * - Uses cached JWT from localStorage (stateless, no cookies to backend)
+ * - Falls back to Better Auth token retrieval if cache is empty
+ * - Handles 401 responses by clearing token and redirecting
  * - Provides centralized error handling with user-friendly messages
  * - Handles network errors (offline, timeout, connection issues)
  * - Includes retry logic for transient failures
- * - Handles 403, 404, 422, 500 errors with specific messages
  */
 import { authClient } from "@/lib/auth-client"
+import { getStoredToken, storeToken, clearToken } from "@/lib/token-manager"
 
 /**
  * Custom error class for API errors with user-friendly messages
@@ -66,25 +67,35 @@ export async function authenticatedFetch(
     )
   }
 
-  // Retrieve JWT token from Better Auth
-  const { data: tokenData, error: tokenError } = await authClient.token()
+  // Try cached token first (stateless - no cookie dependency)
+  let token = getStoredToken()
 
-  if (tokenError || !tokenData?.token) {
-    // Token retrieval failed - redirect to sign-in
-    if (typeof window !== "undefined") {
-      window.location.href = "/auth/signin"
+  // If no cached token, try to get from Better Auth and cache it
+  if (!token) {
+    const { data: tokenData, error: tokenError } = await authClient.token()
+
+    if (tokenError || !tokenData?.token) {
+      // Token retrieval failed - redirect to sign-in
+      clearToken()
+      if (typeof window !== "undefined") {
+        window.location.href = "/auth/signin"
+      }
+      throw new ApiError("Authentication required", 401, "Authentication required", false)
     }
-    throw new ApiError("Authentication required", 401, "Authentication required", false)
+
+    // Cache the token (24 hours = 86400 seconds)
+    token = tokenData.token
+    storeToken(token, 86400)
   }
 
   // Build full URL if relative path provided
   const baseURL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"
   const fullURL = url.startsWith("http") ? url : `${baseURL}${url}`
 
-  // Attach Authorization header with JWT
+  // Attach Authorization header with JWT (stateless - no cookies needed)
   const headers = {
     "Content-Type": "application/json",
-    Authorization: `Bearer ${tokenData.token}`,
+    Authorization: `Bearer ${token}`,
     ...options.headers,
   }
 
@@ -93,11 +104,10 @@ export async function authenticatedFetch(
   const timeoutId = setTimeout(() => controller.abort(), timeoutMs)
 
   try {
-    // Make API request with timeout
+    // Make API request with timeout (stateless JWT auth - no cookies)
     const response = await fetch(fullURL, {
       ...options,
       headers,
-      credentials: "include",  // Required for cross-origin cookie/session handling
       signal: controller.signal,
     })
 
@@ -107,6 +117,8 @@ export async function authenticatedFetch(
     if (!response.ok) {
       // 401 Unauthorized (expired/invalid token)
       if (response.status === 401) {
+        // Clear cached token on auth failure
+        clearToken()
         if (typeof window !== "undefined") {
           // Set session expiry flag for signin page to display message
           sessionStorage.setItem("sessionExpired", "true")

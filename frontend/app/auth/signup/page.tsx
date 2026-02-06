@@ -13,6 +13,7 @@
  */
 
 import { authClient } from "@/lib/auth-client"
+import { storeToken, clearToken } from "@/lib/token-manager"
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { motion, AnimatePresence } from "motion/react"
@@ -66,6 +67,9 @@ export default function SignUpPage() {
     setLoading(true)
 
     try {
+      // Clear any stale token before signup
+      clearToken()
+
       const { data, error } = await authClient.signUp.email({
         email,
         password,
@@ -78,6 +82,14 @@ export default function SignUpPage() {
       }
 
       if (data) {
+        // Get JWT token and store it for stateless API auth
+        const { data: tokenData } = await authClient.token()
+        if (tokenData?.token) {
+          storeToken(tokenData.token, 86400) // 24 hours
+        }
+
+        // Notify navigation of auth state change
+        window.dispatchEvent(new Event("auth-state-change"))
         // Redirect to tasks page on successful sign up
         router.push("/tasks")
       }
