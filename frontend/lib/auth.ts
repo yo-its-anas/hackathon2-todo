@@ -38,17 +38,27 @@ export const auth = betterAuth({
   // Base URL for authentication endpoints
   baseURL: process.env.BETTER_AUTH_URL || "http://localhost:3000",
 
+  // Trust the host header from Vercel's proxy
+  trustedOrigins: [
+    process.env.BETTER_AUTH_URL || "http://localhost:3000",
+    process.env.NEXT_PUBLIC_BETTER_AUTH_URL || "http://localhost:3000",
+  ],
+
   // Session cookie configuration for cross-origin and production
   advanced: {
     cookiePrefix: "todo_app",
     useSecureCookies: isProduction,
+    // Required for Vercel deployment behind proxy
+    generateId: () => crypto.randomUUID(),
   },
 
-  // Session configuration
+  // Session configuration - server-side session expiry
   session: {
+    expiresIn: 60 * 60 * 24 * 7, // 7 days (server-side session lifetime)
+    updateAge: 60 * 60 * 24, // Refresh session if older than 1 day
     cookieCache: {
       enabled: true,
-      maxAge: 60 * 60 * 24, // 24 hours in seconds
+      maxAge: 60 * 60 * 24, // 24 hours client-side cache
     },
   },
 })
