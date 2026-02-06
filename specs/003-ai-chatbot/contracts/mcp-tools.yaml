@@ -1,0 +1,229 @@
+# MCP Tool Definitions for Todo AI Chatbot
+# These tools are exposed via FastMCP server for agent consumption
+
+mcp_server:
+  name: "Todo Tools"
+  description: "MCP tools for managing user tasks via natural language"
+  transport: streamable-http
+  endpoint: /mcp
+
+tools:
+  - name: add_task
+    description: |
+      Add a new task for the user. Use this when the user wants to create,
+      add, or remember something as a task.
+    parameters:
+      type: object
+      required:
+        - user_id
+        - title
+      properties:
+        user_id:
+          type: string
+          description: The authenticated user's ID
+        title:
+          type: string
+          description: The task title (extracted from user message)
+          maxLength: 255
+        description:
+          type: string
+          description: Optional detailed description
+          nullable: true
+    returns:
+      type: object
+      properties:
+        success:
+          type: boolean
+        task:
+          type: object
+          properties:
+            id: { type: integer }
+            title: { type: string }
+            description: { type: string, nullable: true }
+            is_completed: { type: boolean }
+            created_at: { type: string, format: date-time }
+        message:
+          type: string
+          description: Confirmation message for the user
+
+  - name: list_tasks
+    description: |
+      List all tasks for the user. Use this when the user wants to see,
+      view, show, or check their tasks or todo list.
+    parameters:
+      type: object
+      required:
+        - user_id
+      properties:
+        user_id:
+          type: string
+          description: The authenticated user's ID
+        include_completed:
+          type: boolean
+          default: true
+          description: Whether to include completed tasks
+    returns:
+      type: object
+      properties:
+        success:
+          type: boolean
+        tasks:
+          type: array
+          items:
+            type: object
+            properties:
+              id: { type: integer }
+              title: { type: string }
+              description: { type: string, nullable: true }
+              is_completed: { type: boolean }
+              created_at: { type: string, format: date-time }
+        count:
+          type: integer
+          description: Total number of tasks
+        message:
+          type: string
+          description: Summary message for empty list or count
+
+  - name: complete_task
+    description: |
+      Mark a task as completed. Use this when the user says they finished,
+      completed, done, or checked off a task.
+    parameters:
+      type: object
+      required:
+        - user_id
+        - task_identifier
+      properties:
+        user_id:
+          type: string
+          description: The authenticated user's ID
+        task_identifier:
+          type: string
+          description: |
+            Task title or keyword to match. The tool will find the best
+            matching task by title substring search.
+    returns:
+      type: object
+      properties:
+        success:
+          type: boolean
+        task:
+          type: object
+          description: The completed task (if found)
+        error:
+          type: object
+          nullable: true
+          properties:
+            code:
+              type: string
+              enum: [TASK_NOT_FOUND, AMBIGUOUS_MATCH]
+            message:
+              type: string
+            matches:
+              type: array
+              description: For AMBIGUOUS_MATCH, list of matching tasks
+              items:
+                type: object
+
+  - name: delete_task
+    description: |
+      Delete/remove a task. Use this when the user wants to delete, remove,
+      or get rid of a task.
+    parameters:
+      type: object
+      required:
+        - user_id
+        - task_identifier
+      properties:
+        user_id:
+          type: string
+          description: The authenticated user's ID
+        task_identifier:
+          type: string
+          description: Task title or keyword to match
+    returns:
+      type: object
+      properties:
+        success:
+          type: boolean
+        deleted_task:
+          type: object
+          description: The deleted task details (for confirmation)
+        error:
+          type: object
+          nullable: true
+          properties:
+            code:
+              type: string
+              enum: [TASK_NOT_FOUND, AMBIGUOUS_MATCH]
+            message:
+              type: string
+
+  - name: update_task
+    description: |
+      Update an existing task's title or description. Use this when the user
+      wants to change, modify, edit, or rename a task.
+    parameters:
+      type: object
+      required:
+        - user_id
+        - task_identifier
+      properties:
+        user_id:
+          type: string
+          description: The authenticated user's ID
+        task_identifier:
+          type: string
+          description: Task title or keyword to match
+        new_title:
+          type: string
+          nullable: true
+          description: New title for the task
+          maxLength: 255
+        new_description:
+          type: string
+          nullable: true
+          description: New description for the task
+    returns:
+      type: object
+      properties:
+        success:
+          type: boolean
+        task:
+          type: object
+          description: The updated task
+        error:
+          type: object
+          nullable: true
+          properties:
+            code:
+              type: string
+              enum: [TASK_NOT_FOUND, AMBIGUOUS_MATCH, NO_CHANGES]
+            message:
+              type: string
+
+# Agent System Prompt Template
+agent_instructions: |
+  You are a friendly task management assistant. Help users manage their todo list
+  through natural conversation.
+
+  IMPORTANT RULES:
+  1. Always use MCP tools to perform task operations - never claim to do something
+     without actually calling the tool.
+  2. Never make up or guess task IDs. If unsure which task the user means, use
+     list_tasks first to see available tasks, then ask for clarification.
+  3. When a tool returns an error, explain it helpfully and suggest alternatives.
+  4. Confirm every action with friendly language.
+  5. For ambiguous requests (multiple matching tasks), list the options and ask
+     which one the user means.
+
+  EXAMPLES:
+  - User: "Add buy milk" -> Call add_task with title "buy milk"
+  - User: "Show my tasks" -> Call list_tasks
+  - User: "Done with groceries" -> Call complete_task with task_identifier "groceries"
+  - User: "Delete that one" -> Check conversation context for which task, or ask
+
+  Be concise but friendly. Use simple confirmations like:
+  - "Done! I've added 'buy milk' to your tasks."
+  - "Here are your 3 tasks: ..."
+  - "I've marked 'groceries' as complete!"

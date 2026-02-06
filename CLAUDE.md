@@ -268,10 +268,10 @@ Spec-driven development flow:
 4. **Implement** → Execute with appropriate specialized agent
 
 ## Recent Changes
+- 003-ai-chatbot: Added Python 3.11+ + FastAPI, OpenAI Agents SDK, MCP Python SDK, LiteLLM
 - 003-ui-ux-polish: Added TypeScript 5.6+ / React 19 / Next.js 15 + Motion for React (~18kb), existing CSS Modules
-- 002-web-app: Added [if applicable, e.g., PostgreSQL, CoreData, files or N/A]
 - 002-web-app: Added [if applicable, e.g., PostgreSQL, CoreData, files or N/A]
 
 ## Active Technologies
-- TypeScript 5.6+ / React 19 / Next.js 15 + Motion for React (~18kb), existing CSS Modules (003-ui-ux-polish)
-- N/A (no data model changes) (003-ui-ux-polish)
+- Python 3.11+ + FastAPI, OpenAI Agents SDK, MCP Python SDK, LiteLLM (003-ai-chatbot)
+- Neon PostgreSQL (existing) + new Conversation/Message tables (003-ai-chatbot)

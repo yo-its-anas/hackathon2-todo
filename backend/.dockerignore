@@ -2,7 +2,7 @@
 .git
 .gitignore
 
-# Python
+# Python cache and bytecode
 __pycache__
 *.py[cod]
 *$py.class
@@ -24,24 +24,25 @@ venv/
 ENV/
 env/
 
-# IDE
+# IDE and editor files
 .idea/
 .vscode/
 *.swp
 *.swo
 
-# Environment files (secrets injected via HF)
+# Environment files (secrets injected via HF Spaces)
 .env
 .env.*
 *.env
 
-# Tests (not needed in production image)
+# Tests (not needed in production)
 tests/
 test_*.py
 *_test.py
 conftest.py
+pytest.ini
 
-# Documentation
+# Documentation (not needed in container)
 *.md
 docs/
 
@@ -49,3 +50,6 @@ docs/
 *.log
 .DS_Store
 Thumbs.db
+
+# Keep start.sh (entrypoint script) - explicitly NOT ignored
+!start.sh

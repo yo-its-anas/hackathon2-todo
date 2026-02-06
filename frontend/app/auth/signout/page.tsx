@@ -23,6 +23,9 @@ export default function SignOutPage() {
         // Call Better Auth sign out
         await authClient.signOut()
 
+        // Notify navigation of auth state change
+        window.dispatchEvent(new Event("auth-state-change"))
+
         // Redirect to sign-in page after successful sign out
         router.push("/auth/signin")
       } catch (error) {

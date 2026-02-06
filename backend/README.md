@@ -9,230 +9,99 @@ pinned: false
 
 # Todo Backend API
 
-Multi-user todo application with persistent storage using FastAPI, SQLModel, and Neon PostgreSQL.
+Multi-user todo application with AI chatbot, powered by FastAPI, OpenAI Agents SDK, and Neon PostgreSQL.
 
-## Features
+## Quick Start (Local Development)
 
-- **JWT Authentication**: Secure token-based authentication with Better Auth integration
-- **User Isolation**: All tasks are scoped to authenticated users with cryptographic verification
-- **Full CRUD Operations**: Create, Read, Update, Delete tasks
-- **Data Validation**: Automatic validation with Pydantic schemas
-- **Persistent Storage**: PostgreSQL database with SQLModel ORM
-- **RESTful API**: OpenAPI-compliant endpoints with automatic documentation
-- **Ownership Enforcement**: Backend verifies JWT signatures and prevents cross-user access
-
-## Tech Stack
-
-- **FastAPI** 0.115+ - Modern Python web framework
-- **SQLModel** 0.0.24+ - Type-safe ORM combining SQLAlchemy and Pydantic
-- **Neon PostgreSQL** - Serverless PostgreSQL database
-- **Pydantic** 2.0+ - Data validation using Python type hints
-- **Uvicorn** - ASGI server for running the application
-
-## Setup
-
-### Prerequisites
-
-- Python 3.13+
-- Neon PostgreSQL database (or any PostgreSQL 12+)
-
-### Installation
-
-1. Install dependencies:
 ```bash
+# 1. Install dependencies
 pip install -r requirements.txt
-```
 
-2. Configure environment variables:
-```bash
-# Copy example env file
+# 2. Configure environment
 cp .env.example .env
+# Edit .env with your credentials
 
-# Edit .env and set your DATABASE_URL
-# Format: postgresql://user:password@host-pooler.region.aws.neon.tech/dbname?sslmode=require
+# 3. Start MCP Server (Terminal 1)
+python -m app.mcp.server
+
+# 4. Start FastAPI (Terminal 2)
+uvicorn app.main:app --reload --port 8000
 ```
 
-3. Run the server:
-```bash
-# Development mode (with auto-reload)
-uvicorn app.main:app --reload
+## Docker Deployment
 
-# Production mode
-uvicorn app.main:app --host 0.0.0.0 --port 8000
-```
-
-The API will be available at `http://localhost:8000`
-
-### Database Setup
-
-The database tables are created automatically on application startup using SQLModel's `metadata.create_all()` function.
-
-## API Endpoints
-
-All endpoints are prefixed with `/api`.
-
-### View All Tasks
-
-**GET** `/api/{user_id}/tasks`
-
-Returns all tasks for the specified user.
-
-**Response**: `200 OK`
-```json
-[
-  {
-    "id": 1,
-    "title": "Buy groceries",
-    "description": "Milk, eggs, bread",
-    "is_completed": false,
-    "created_at": "2026-01-08T10:00:00",
-    "updated_at": "2026-01-08T10:00:00",
-    "user_id": "user1"
-  }
-]
-```
-
-### View Single Task
-
-**GET** `/api/{user_id}/tasks/{id}`
-
-Returns a specific task by ID.
-
-**Response**: `200 OK` or `404 Not Found`
-
-### Create Task
-
-**POST** `/api/{user_id}/tasks`
-
-Creates a new task for the specified user.
-
-**Request Body**:
-```json
-{
-  "title": "Task title (required)",
-  "description": "Optional description"
-}
-```
-
-**Response**: `201 Created`
-
-### Update Task
-
-**PUT** `/api/{user_id}/tasks/{id}`
-
-Updates an existing task. All fields are optional.
-
-**Request Body**:
-```json
-{
-  "title": "New title",
-  "description": "New description",
-  "is_completed": true
-}
-```
-
-**Response**: `200 OK` or `404 Not Found`
-
-### Toggle Task Completion
-
-**PATCH** `/api/{user_id}/tasks/{id}/complete`
-
-Toggles the completion status of a task (true ↔ false).
-
-**Response**: `200 OK` or `404 Not Found`
-
-### Delete Task
-
-**DELETE** `/api/{user_id}/tasks/{id}`
-
-Permanently deletes a task.
-
-**Response**: `204 No Content` or `404 Not Found`
-
-## JWT Authentication
-
-All API endpoints now require JWT authentication. The backend verifies JWT tokens issued by Better Auth.
-
-### Authentication Setup
-
-1. **Generate Secret** (minimum 32 characters):
-```bash
-openssl rand -base64 32
-```
-
-2. **Configure Environment**:
-Add `BETTER_AUTH_SECRET` to your `.env` file (must match frontend secret):
-```bash
-BETTER_AUTH_SECRET=your-secret-key-min-32-chars-replace-this-in-production
-```
-
-3. **Token Verification Process**:
-- Frontend (Better Auth) issues JWT tokens signed with `BETTER_AUTH_SECRET`
-- Backend extracts token from `Authorization: Bearer <token>` header
-- Backend verifies signature using same `BETTER_AUTH_SECRET`
-- Backend extracts `user_id` from JWT `sub` (subject) claim
-- Backend enforces ownership: authenticated user must match URL `user_id`
-
-### Making Authenticated Requests
-
-All API requests must include JWT token in Authorization header:
+The Dockerfile runs both FastAPI and MCP server in a single container.
 
 ```bash
-curl -H "Authorization: Bearer <your-jwt-token>" \\
-     http://localhost:8000/api/user123/tasks
+# Build
+docker build -t todo-backend .
+
+# Run locally
+docker run -p 7860:7860 \
+  -e DATABASE_URL="postgresql://..." \
+  -e BETTER_AUTH_SECRET="your-secret" \
+  -e OPENAI_API_KEY="sk-..." \
+  todo-backend
+
+# Test
+curl http://localhost:7860/
 ```
 
-### Authentication Errors
+## Hugging Face Spaces Deployment
 
-- **401 Unauthorized**: Missing, invalid, or expired JWT token
-- **403 Forbidden**: Valid token but user trying to access another user's resources
+1. Create a new Docker Space at [huggingface.co/new-space](https://huggingface.co/new-space)
+2. Push this repository to the Space
+3. Add secrets in Space Settings:
+   - `DATABASE_URL`
+   - `BETTER_AUTH_SECRET`
+   - `OPENAI_API_KEY`
 
-Example authenticated request:
-```python
-import requests
-
-headers = {
-    "Authorization": f"Bearer {jwt_token}",
-    "Content-Type": "application/json"
-}
-
-response = requests.get(
-    "http://localhost:8000/api/user123/tasks",
-    headers=headers
-)
-```
+See [DEPLOYMENT.md](../DEPLOYMENT.md) for complete instructions.
 
 ## Environment Variables
 
-| Variable | Description | Example |
-|----------|-------------|---------|
-| `DATABASE_URL` | PostgreSQL connection string | `postgresql://user:pass@host/db?sslmode=require` |
-| `BETTER_AUTH_SECRET` | JWT signing/verification secret (min 32 chars) | Generated with `openssl rand -base64 32` |
+| Variable | Required | Default | Description |
+|----------|----------|---------|-------------|
+| `DATABASE_URL` | Yes | - | Neon PostgreSQL connection string |
+| `BETTER_AUTH_SECRET` | Yes | - | JWT secret (min 32 chars) |
+| `OPENAI_API_KEY` | Yes | - | OpenAI API key |
+| `LLM_MODEL` | No | `gpt-4o-mini` | OpenAI model |
+| `MCP_SERVER_PORT` | No | `8001` | Internal MCP server port |
+| `PORT` | No | `7860` | FastAPI port (HF injects this) |
 
-## Interactive API Documentation
+## API Endpoints
 
-FastAPI automatically generates interactive API documentation:
+All endpoints require `Authorization: Bearer <token>` header.
 
-- **Swagger UI**: http://localhost:8000/docs
-- **ReDoc**: http://localhost:8000/redoc
-- **OpenAPI JSON**: http://localhost:8000/openapi.json
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/` | Health check |
+| GET | `/api/{user_id}/tasks` | List all tasks |
+| POST | `/api/{user_id}/tasks` | Create task |
+| GET | `/api/{user_id}/tasks/{id}` | Get task |
+| PUT | `/api/{user_id}/tasks/{id}` | Update task |
+| DELETE | `/api/{user_id}/tasks/{id}` | Delete task |
+| PATCH | `/api/{user_id}/tasks/{id}/complete` | Toggle completion |
+| POST | `/api/{user_id}/chat` | Send chat message |
 
-## Testing
+## Architecture
 
-Run tests with pytest:
-
-```bash
-# Run all tests
-pytest
-
-# Run with coverage
-pytest --cov=app
-
-# Run specific test file
-pytest tests/test_tasks.py
-
-# Run with verbose output
-pytest -v
+```
+┌─────────────────────────────────────────────────┐
+│              Docker Container                    │
+│  ┌─────────────────┐    ┌─────────────────────┐ │
+│  │  FastAPI (:7860)│◄──►│  MCP Server (:8001) │ │
+│  │  - REST API     │    │  - AI Tool Server   │ │
+│  │  - JWT Auth     │    │  - Task Operations  │ │
+│  │  - Agent Runner │    │  - Internal Only    │ │
+│  └────────┬────────┘    └─────────────────────┘ │
+└───────────┼─────────────────────────────────────┘
+            │
+            ▼
+    ┌───────────────┐      ┌─────────────────┐
+    │ Neon PostgreSQL│      │   OpenAI API    │
+    │   (Database)  │      │   (LLM Model)   │
+    └───────────────┘      └─────────────────┘
 ```
 
 ## Project Structure
@@ -240,64 +109,52 @@ pytest -v
 ```
 backend/
 ├── app/
-│   ├── __init__.py
-│   ├── main.py              # FastAPI application entry point
-│   ├── database.py          # Database connection and session management
-│   ├── dependencies.py      # FastAPI dependencies (SessionDep)
-│   ├── models/
-│   │   ├── __init__.py
-│   │   └── task.py          # Task SQLModel definition
-│   ├── schemas/
-│   │   ├── __init__.py
-│   │   └── task.py          # Pydantic schemas (TaskCreate, TaskUpdate, TaskResponse)
-│   └── routers/
-│       ├── __init__.py
-│       └── tasks.py         # Task API endpoints
-├── tests/
-│   ├── __init__.py
-│   ├── conftest.py          # Pytest fixtures
-│   ├── test_models.py       # Model validation tests
-│   └── test_tasks.py        # API integration tests
-├── requirements.txt         # Python dependencies
-├── .env.example            # Environment variable template
-├── Dockerfile              # Docker container for Hugging Face deployment
-└── README.md               # This file
+│   ├── main.py           # FastAPI application
+│   ├── auth.py           # JWT verification
+│   ├── database.py       # Database connection
+│   ├── dependencies.py   # FastAPI dependencies
+│   ├── models/           # SQLModel definitions
+│   ├── schemas/          # Pydantic schemas
+│   ├── routers/          # API endpoints
+│   ├── services/         # Business logic
+│   └── mcp/
+│       ├── server.py     # MCP server setup
+│       └── tools.py      # MCP tool definitions
+├── Dockerfile            # Production container
+├── start.sh              # Entrypoint script
+├── requirements.txt      # Python dependencies
+└── .env.example          # Environment template
 ```
 
-## Security Considerations
+## AI Chatbot
 
-- **User Isolation**: All queries filter by `user_id` to prevent data leakage
-- **Input Validation**: Pydantic automatically validates all inputs
-- **SQL Injection**: SQLModel uses parameterized queries
-- **Environment Variables**: Sensitive data (DATABASE_URL) stored in `.env` (never committed)
+Natural language task management via MCP tools:
 
-## Error Handling
+- **list_tasks** - View all tasks
+- **add_task** - Create a new task
+- **complete_task** - Mark task as done
+- **delete_task** - Remove a task
+- **update_task** - Modify a task
 
-The API returns standard HTTP status codes:
+Example chat:
+```
+User: "Add a task to buy groceries"
+AI: "✅ Added 'buy groceries' to your tasks!"
 
-- `200 OK` - Successful GET, PUT, PATCH
-- `201 Created` - Successful POST
-- `204 No Content` - Successful DELETE
-- `404 Not Found` - Resource doesn't exist or belongs to different user
-- `422 Unprocessable Entity` - Validation error (invalid input)
-- `500 Internal Server Error` - Server error
+User: "Show my tasks"
+AI: "Here are your 3 tasks:
+  ○ buy groceries
+  ✓ finish report
+  ○ call mom"
+```
 
-## Development
+## Security
 
-### Code Quality
-
-The codebase follows:
-- Type hints for all function signatures
-- Docstrings for all public functions
-- Pydantic validation for all inputs
-- User isolation in all database queries
-
-### Adding New Endpoints
-
-1. Define Pydantic schemas in `app/schemas/`
-2. Create SQLModel models in `app/models/`
-3. Implement endpoint in `app/routers/`
-4. Add tests in `tests/`
+- JWT token verification on all endpoints
+- User isolation (users only see their own tasks)
+- Ownership enforcement at database query level
+- Non-root container user
+- Secrets via environment variables (never in code)
 
 ## License
 

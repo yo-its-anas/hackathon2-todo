@@ -3,15 +3,27 @@ FastAPI application entry point.
 
 Main application instance with router registration and database initialization.
 """
+import logging
+import os
 from contextlib import asynccontextmanager
 from typing import AsyncGenerator
 
 from fastapi import FastAPI
+
+# Configure logging
+log_level = os.getenv("LOG_LEVEL", "INFO").upper()
+logging.basicConfig(
+    level=getattr(logging, log_level, logging.INFO),
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+)
+logger = logging.getLogger(__name__)
 from fastapi.middleware.cors import CORSMiddleware
 from sqlmodel import SQLModel
 
 from app.database import engine
-from app.routers import tasks
+from app.routers import tasks, chat
+# Import models to register them with SQLModel metadata
+from app.models import Conversation, Message  # noqa: F401
 
 
 @asynccontextmanager
@@ -22,9 +34,14 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     Creates database tables on startup.
     """
     # Startup: Create all database tables
+    logger.info("Starting Todo REST API...")
     SQLModel.metadata.create_all(engine)
+    logger.info("Database tables created/verified")
+
+    logger.info(f"MCP Server expected at: http://localhost:{os.getenv('MCP_SERVER_PORT', '8001')}/mcp")
     yield
     # Shutdown: Add cleanup logic here if needed
+    logger.info("Shutting down Todo REST API...")
 
 
 # Create FastAPI application instance
@@ -46,6 +63,7 @@ app.add_middleware(
 
 # Register routers
 app.include_router(tasks.router, prefix="/api", tags=["tasks"])
+app.include_router(chat.router, prefix="/api", tags=["chat"])
 
 
 @app.get("/")

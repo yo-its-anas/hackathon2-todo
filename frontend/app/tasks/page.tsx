@@ -31,6 +31,7 @@ import LoadingSpinner from "@/components/LoadingSpinner"
 import ErrorMessage from "@/components/ErrorMessage"
 import EmptyState from "@/components/EmptyState"
 import Toast from "@/components/Toast"
+import ChatInterface from "@/components/chat/ChatInterface"
 import styles from "./tasks.module.css"
 
 export default function TasksPage() {
@@ -58,24 +59,10 @@ export default function TasksPage() {
   // Toast state
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null)
 
-  useEffect(() => {
-    // Fetch session using async getSession method
-    authClient.getSession().then((result) => {
-      if (result.data?.user?.id) {
-        setUserId(result.data.user.id)
-        loadTasks(result.data.user.id)
-      } else {
-        // Redirect to sign-in if not authenticated
-        window.location.href = "/auth/signin"
-      }
-      setSessionLoading(false)
-    }).catch(() => {
-      window.location.href = "/auth/signin"
-      setSessionLoading(false)
-    })
-  }, [])
+  // Chat panel state
+  const [isChatOpen, setIsChatOpen] = useState(false)
 
-  const loadTasks = async (uid: string) => {
+  const loadTasks = useCallback(async (uid: string) => {
     try {
       setLoading(true)
       const fetchedTasks = await getAllTasks(uid)
@@ -91,11 +78,60 @@ export default function TasksPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [])
+
+  // Callback to refresh tasks after chat mutations (no loading spinner)
+  const refreshTasks = useCallback(async () => {
+    if (!userId) return
+    try {
+      const fetchedTasks = await getAllTasks(userId)
+      const sortedTasks = fetchedTasks.sort((a, b) =>
+        new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+      )
+      setTasks(sortedTasks)
+    } catch (err) {
+      console.error("Failed to refresh tasks:", err)
+    }
+  }, [userId])
+
+  // Fetch session and load tasks on mount
+  useEffect(() => {
+    authClient.getSession().then((result) => {
+      if (result.data?.user?.id) {
+        setUserId(result.data.user.id)
+        loadTasks(result.data.user.id)
+      } else {
+        window.location.href = "/auth/signin"
+      }
+      setSessionLoading(false)
+    }).catch(() => {
+      window.location.href = "/auth/signin"
+      setSessionLoading(false)
+    })
+  }, [loadTasks])
 
   const showToast = useCallback((message: string, type: 'success' | 'error' | 'info' = 'success') => {
     setToast({ message, type })
   }, [])
+
+  const handleToolSuccess = useCallback(({ tool, success }: { tool: string; success: boolean }) => {
+    if (!success) return
+
+    const toastMessages: Record<string, string> = {
+      add_task: "Task created successfully!",
+      delete_task: "Task deleted successfully!",
+      complete_task: "Task marked as completed",
+      update_task: "Task updated successfully!",
+    }
+
+    // Always refresh tasks after any tool execution to stay in sync
+    refreshTasks()
+
+    // Show toast only for mutation tools
+    if (tool in toastMessages) {
+      showToast(toastMessages[tool])
+    }
+  }, [refreshTasks, showToast])
 
   const hideToast = useCallback(() => {
     setToast(null)
@@ -244,7 +280,8 @@ export default function TasksPage() {
   }
 
   return (
-    <div className={styles.container}>
+    <div className={styles.pageWrapper}>
+      <div className={styles.container}>
       {/* Toast Notification */}
       <Toast
         message={toast?.message || ""}
@@ -569,6 +606,43 @@ export default function TasksPage() {
           </ul>
         )}
       </motion.div>
+      </div>
+
+      {/* Chat Toggle Button */}
+      <motion.button
+        className={styles.chatToggle}
+        onClick={() => setIsChatOpen(!isChatOpen)}
+        whileHover={{ scale: 1.05 }}
+        whileTap={{ scale: 0.95 }}
+        aria-label={isChatOpen ? "Close chat" : "Open chat assistant"}
+      >
+        {isChatOpen ? "✕" : "💬"}
+      </motion.button>
+
+      {/* Chat Panel */}
+      <AnimatePresence>
+        {isChatOpen && userId && (
+          <motion.div
+            className={styles.chatPanel}
+            initial={{ opacity: 0, y: 20, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 20, scale: 0.95 }}
+            transition={{ duration: durations.fast, ease: easings.easeOut }}
+          >
+            <div className={styles.chatHeader}>
+              <span>Task Assistant</span>
+              <button
+                className={styles.chatCloseBtn}
+                onClick={() => setIsChatOpen(false)}
+                aria-label="Close chat"
+              >
+                ✕
+              </button>
+            </div>
+            <ChatInterface userId={userId} onTaskChange={refreshTasks} onToolSuccess={handleToolSuccess} />
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   )
 }

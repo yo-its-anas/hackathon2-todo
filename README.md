@@ -17,6 +17,7 @@ A production-ready, full-stack todo application with secure authentication, user
 - **Secure Authentication**: JWT-based auth with Better Auth (24-hour sessions)
 - **User Isolation**: All tasks scoped to authenticated users with cryptographic verification
 - **Full CRUD Operations**: Create, read, update, delete, and toggle task completion
+- **AI Chatbot**: Natural language task management via MCP-powered AI agent
 - **Responsive Design**: Mobile-first (320px+), tablet (768px+), desktop (1024px+)
 - **Type-Safe**: TypeScript frontend + Python type hints backend
 - **Auto-Documentation**: OpenAPI/Swagger UI at `/docs`
@@ -63,11 +64,15 @@ NEXT_PUBLIC_API_URL=http://localhost:8000
 ### 3. Start the Application
 
 ```bash
-# Terminal 1 - Backend (port 8000)
+# Terminal 1 - MCP Server (port 8001) - Required for AI chatbot
+cd backend
+python -m app.mcp.server
+
+# Terminal 2 - Backend (port 8000)
 cd backend
 uvicorn app.main:app --reload
 
-# Terminal 2 - Frontend (port 3000)
+# Terminal 3 - Frontend (port 3000)
 cd frontend
 npm run dev
 ```
@@ -86,10 +91,12 @@ todo-app/
 │   ├── app/                  # Pages and routes
 │   │   ├── auth/             # Sign-in, sign-up, sign-out
 │   │   ├── tasks/            # Task management page
+│   │   ├── chat/             # AI chatbot interface
 │   │   └── api/auth/         # Better Auth API routes
 │   ├── components/           # Reusable UI components
+│   │   └── chat/             # Chat UI components
 │   ├── lib/                  # Auth config, API client
-│   └── services/             # Task CRUD methods
+│   └── services/             # Task CRUD + chat methods
 │
 ├── backend/                  # FastAPI REST API
 │   ├── app/
@@ -98,7 +105,13 @@ todo-app/
 │   │   ├── database.py       # Database connection
 │   │   ├── models/           # SQLModel definitions
 │   │   ├── schemas/          # Pydantic schemas
-│   │   └── routers/          # API endpoints
+│   │   ├── routers/          # API endpoints
+│   │   ├── services/         # Business logic
+│   │   │   ├── agent.py      # AI agent with LiteLLM
+│   │   │   └── conversation.py # Conversation persistence
+│   │   └── mcp/              # MCP server + tools
+│   │       ├── server.py     # FastMCP HTTP server
+│   │       └── tools.py      # Task management tools
 │   └── tests/                # Pytest test suite
 │
 └── specs/                    # Feature specifications
@@ -116,6 +129,38 @@ All endpoints require JWT token in `Authorization: Bearer <token>` header.
 | PUT | `/api/{user_id}/tasks/{id}` | Update task |
 | DELETE | `/api/{user_id}/tasks/{id}` | Delete task |
 | PATCH | `/api/{user_id}/tasks/{id}/complete` | Toggle completion |
+| POST | `/api/{user_id}/chat` | Send chat message to AI |
+
+## AI Chatbot
+
+The app includes a natural language AI chatbot that manages tasks through conversation.
+
+### Capabilities
+
+- **Add tasks**: "Add a task to buy groceries"
+- **List tasks**: "Show my tasks" or "What's on my list?"
+- **Complete tasks**: "Mark groceries as done"
+- **Delete tasks**: "Remove the milk task"
+- **Update tasks**: "Change groceries to buy organic groceries"
+- **Compound actions**: "Add buy milk and complete groceries"
+
+### Architecture
+
+- **Frontend**: Custom React chat UI at `/chat` (no external chat dependencies)
+- **Backend**: FastAPI endpoint at `/api/{user_id}/chat`
+- **AI Agent**: OpenAI Agents SDK with LiteLLM for Gemini API
+- **MCP Server**: FastMCP server exposing task tools on port 8001
+
+### Environment Variables
+
+Add to `backend/.env`:
+```env
+GEMINI_API_KEY=your-gemini-api-key
+LLM_MODEL=gemini/gemini-2.0-flash
+MCP_SERVER_PORT=8001
+RATE_LIMIT_PER_MINUTE=60
+CHAT_CONTEXT_LIMIT=50
+```
 
 ## Authentication Flow
 

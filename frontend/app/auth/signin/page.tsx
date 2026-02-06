@@ -56,6 +56,8 @@ function SignInForm() {
       }
 
       if (data) {
+        // Notify navigation of auth state change
+        window.dispatchEvent(new Event("auth-state-change"))
         // Redirect to tasks page on successful sign in
         router.push("/tasks")
       }

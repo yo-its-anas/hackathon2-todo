@@ -1,0 +1,315 @@
+openapi: 3.1.0
+info:
+  title: Todo AI Chatbot API
+  description: Natural language chat interface for managing todos via AI agent
+  version: 1.0.0
+
+servers:
+  - url: http://localhost:8000
+    description: Local development server
+
+paths:
+  /api/{user_id}/chat:
+    post:
+      summary: Send chat message to AI agent
+      description: |
+        Accepts a natural language message, processes it through the AI agent,
+        and returns the agent's response. The agent uses MCP tools to perform
+        task operations as needed.
+      operationId: sendChatMessage
+      tags:
+        - Chat
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: user_id
+          in: path
+          required: true
+          description: User ID (must match authenticated user)
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ChatRequest'
+            examples:
+              addTask:
+                summary: Add a task
+                value:
+                  message: "Add a task to buy groceries"
+                  conversation_id: null
+              listTasks:
+                summary: List tasks
+                value:
+                  message: "Show my tasks"
+                  conversation_id: 123
+              completeTask:
+                summary: Complete a task
+                value:
+                  message: "Mark buy groceries as done"
+                  conversation_id: 123
+      responses:
+        '200':
+          description: Successful response from AI agent
+          content:
+            text/event-stream:
+              schema:
+                $ref: '#/components/schemas/ChatStreamEvent'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChatResponse'
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error:
+                  code: "INVALID_REQUEST"
+                  message: "Message cannot be empty"
+        '401':
+          description: Unauthorized - Invalid or missing JWT token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error:
+                  code: "UNAUTHORIZED"
+                  message: "Invalid or expired token"
+        '403':
+          description: Forbidden - User ID mismatch
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error:
+                  code: "FORBIDDEN"
+                  message: "Cannot access another user's chat"
+        '429':
+          description: Rate limit exceeded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error:
+                  code: "RATE_LIMITED"
+                  message: "Too many requests. Please wait a moment."
+
+  /api/{user_id}/conversations:
+    get:
+      summary: List user's conversations
+      description: Returns a list of conversation sessions for the user
+      operationId: listConversations
+      tags:
+        - Conversations
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: user_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: List of conversations
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Conversation'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /api/{user_id}/conversations/{conversation_id}/messages:
+    get:
+      summary: Get conversation history
+      description: Returns messages from a specific conversation
+      operationId: getConversationMessages
+      tags:
+        - Conversations
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: user_id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: conversation_id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: limit
+          in: query
+          description: Maximum messages to return (default 50)
+          schema:
+            type: integer
+            default: 50
+            maximum: 100
+        - name: before
+          in: query
+          description: Return messages before this message ID (for pagination)
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: List of messages
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Message'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          description: Conversation not found
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT token from Better Auth
+
+  schemas:
+    ChatRequest:
+      type: object
+      required:
+        - message
+      properties:
+        message:
+          type: string
+          description: Natural language message from user
+          minLength: 1
+          maxLength: 2000
+          example: "Add a task to buy groceries"
+        conversation_id:
+          type: integer
+          nullable: true
+          description: Existing conversation ID (null to start new)
+          example: 123
+
+    ChatResponse:
+      type: object
+      properties:
+        conversation_id:
+          type: integer
+          description: The conversation ID (may be newly created)
+        message:
+          type: string
+          description: AI agent's response text
+        tool_results:
+          type: array
+          description: Results from any MCP tool calls
+          items:
+            $ref: '#/components/schemas/ToolResult'
+
+    ChatStreamEvent:
+      type: object
+      description: Server-Sent Event format for streaming response
+      properties:
+        event:
+          type: string
+          enum:
+            - thread.message.created
+            - thread.message.delta
+            - thread.message.completed
+            - tool.call.started
+            - tool.call.completed
+            - error
+        data:
+          type: object
+          description: Event payload (varies by event type)
+
+    ToolResult:
+      type: object
+      properties:
+        tool:
+          type: string
+          description: Name of the MCP tool called
+          enum:
+            - add_task
+            - list_tasks
+            - complete_task
+            - delete_task
+            - update_task
+        success:
+          type: boolean
+          description: Whether the tool call succeeded
+        result:
+          type: object
+          description: Tool-specific result data
+
+    Conversation:
+      type: object
+      properties:
+        id:
+          type: integer
+        user_id:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+        message_count:
+          type: integer
+          description: Number of messages in conversation
+
+    Message:
+      type: object
+      properties:
+        id:
+          type: integer
+        conversation_id:
+          type: integer
+        role:
+          type: string
+          enum: [user, assistant, tool]
+        content:
+          type: string
+        tool_calls:
+          type: object
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: object
+          properties:
+            code:
+              type: string
+              description: Error code for programmatic handling
+            message:
+              type: string
+              description: Human-readable error message
+            suggestions:
+              type: array
+              items:
+                type: string
+              description: Suggested actions or corrections
+
+  responses:
+    Unauthorized:
+      description: Unauthorized - Invalid or missing JWT token
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'

@@ -9,16 +9,40 @@
  * - Touch-friendly targets (44px minimum)
  * - Keyboard accessible
  * - Auto-closes on navigation
+ * - Session-aware auth buttons
  */
 
-import { useState } from "react"
+import { useState, useEffect, useCallback } from "react"
 import Link from "next/link"
 import { motion, AnimatePresence } from "motion/react"
 import { durations, easings } from "@/lib/motion-config"
+import { authClient } from "@/lib/auth-client"
 import styles from "./layout.module.css"
 
 export default function Navigation() {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
+  const [isAuthenticated, setIsAuthenticated] = useState(false)
+
+  const checkSession = useCallback(() => {
+    authClient.getSession().then((result) => {
+      setIsAuthenticated(!!result.data?.user?.id)
+    }).catch(() => {
+      setIsAuthenticated(false)
+    })
+  }, [])
+
+  useEffect(() => {
+    // Check session on mount
+    checkSession()
+
+    // Listen for auth state changes (dispatched from sign-in/sign-out)
+    const handleAuthChange = () => checkSession()
+    window.addEventListener("auth-state-change", handleAuthChange)
+
+    return () => {
+      window.removeEventListener("auth-state-change", handleAuthChange)
+    }
+  }, [checkSession])
 
   const toggleMenu = () => {
     setIsMenuOpen(!isMenuOpen)
@@ -56,12 +80,25 @@ export default function Navigation() {
 
         {/* Navigation Links - Desktop (always visible) */}
         <div className={styles.navLinksDesktop}>
-          <Link href="/tasks" className={styles.navLink}>
-            My Tasks
-          </Link>
-          <Link href="/auth/signout" className={styles.signOutButton}>
-            Sign Out
-          </Link>
+          {isAuthenticated ? (
+            <>
+              <Link href="/tasks" className={styles.navLink}>
+                My Tasks
+              </Link>
+              <Link href="/auth/signout" className={styles.signOutButton}>
+                Sign Out
+              </Link>
+            </>
+          ) : (
+            <>
+              <Link href="/auth/signin" className={styles.navLink}>
+                Sign In
+              </Link>
+              <Link href="/auth/signup" className={styles.signOutButton}>
+                Get Started
+              </Link>
+            </>
+          )}
         </div>
 
         {/* Navigation Links - Mobile (animated) */}
@@ -76,34 +113,69 @@ export default function Navigation() {
               exit={{ opacity: 0, y: -10, height: 0 }}
               transition={{ duration: durations.fast, ease: easings.easeOut }}
             >
-              <motion.div
-                initial={{ opacity: 0, x: -10 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ duration: durations.fast, delay: 0.05 }}
-              >
-                <Link
-                  href="/tasks"
-                  className={styles.navLink}
-                  onClick={closeMenu}
-                  role="menuitem"
-                >
-                  My Tasks
-                </Link>
-              </motion.div>
-              <motion.div
-                initial={{ opacity: 0, x: -10 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ duration: durations.fast, delay: 0.1 }}
-              >
-                <Link
-                  href="/auth/signout"
-                  className={styles.signOutButton}
-                  onClick={closeMenu}
-                  role="menuitem"
-                >
-                  Sign Out
-                </Link>
-              </motion.div>
+              {isAuthenticated ? (
+                <>
+                  <motion.div
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ duration: durations.fast, delay: 0.05 }}
+                  >
+                    <Link
+                      href="/tasks"
+                      className={styles.navLink}
+                      onClick={closeMenu}
+                      role="menuitem"
+                    >
+                      My Tasks
+                    </Link>
+                  </motion.div>
+                  <motion.div
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ duration: durations.fast, delay: 0.08 }}
+                  >
+                    <Link
+                      href="/auth/signout"
+                      className={styles.signOutButton}
+                      onClick={closeMenu}
+                      role="menuitem"
+                    >
+                      Sign Out
+                    </Link>
+                  </motion.div>
+                </>
+              ) : (
+                <>
+                  <motion.div
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ duration: durations.fast, delay: 0.05 }}
+                  >
+                    <Link
+                      href="/auth/signin"
+                      className={styles.navLink}
+                      onClick={closeMenu}
+                      role="menuitem"
+                    >
+                      Sign In
+                    </Link>
+                  </motion.div>
+                  <motion.div
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ duration: durations.fast, delay: 0.08 }}
+                  >
+                    <Link
+                      href="/auth/signup"
+                      className={styles.signOutButton}
+                      onClick={closeMenu}
+                      role="menuitem"
+                    >
+                      Get Started
+                    </Link>
+                  </motion.div>
+                </>
+              )}
             </motion.div>
           )}
         </AnimatePresence>

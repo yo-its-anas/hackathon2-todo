@@ -91,6 +91,40 @@
   }
 }
 
+/* Desktop Navigation Links */
+.navLinksDesktop {
+  display: none;
+  gap: var(--spacing-md);
+  align-items: center;
+}
+
+@media (min-width: 768px) {
+  .navLinksDesktop {
+    display: flex;
+  }
+}
+
+/* Mobile Navigation Links */
+.navLinksMobile {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background-color: var(--color-primary);
+  padding: var(--spacing-md);
+  box-shadow: var(--shadow-lg);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+  overflow: hidden;
+}
+
+@media (min-width: 768px) {
+  .navLinksMobile {
+    display: none;
+  }
+}
+
 /* Navigation Links Container */
 .navLinks {
   display: none; /* Hidden by default on mobile */
