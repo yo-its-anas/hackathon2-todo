@@ -117,6 +117,11 @@ export default function TasksPage() {
   const handleToolSuccess = useCallback(({ tool, success }: { tool: string; success: boolean }) => {
     if (!success) return
 
+    // Normalize tool name - strip MCP server prefix if present (e.g., "Todo Tools__add_task" -> "add_task")
+    const normalizedTool = tool.includes("__") ? tool.split("__").pop()! :
+                           tool.includes("::") ? tool.split("::").pop()! :
+                           tool.includes(".") ? tool.split(".").pop()! : tool
+
     const toastMessages: Record<string, string> = {
       add_task: "Task created successfully!",
       delete_task: "Task deleted successfully!",
@@ -128,8 +133,8 @@ export default function TasksPage() {
     refreshTasks()
 
     // Show toast only for mutation tools
-    if (tool in toastMessages) {
-      showToast(toastMessages[tool])
+    if (normalizedTool in toastMessages) {
+      showToast(toastMessages[normalizedTool])
     }
   }, [refreshTasks, showToast])
 

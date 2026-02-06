@@ -52,10 +52,11 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-# Configure CORS for future frontend integration
+# Configure CORS - credentials require explicit origins (not "*")
+FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:3000")
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # In production, specify exact origins
+    allow_origins=[FRONTEND_URL],  # Must be explicit when allow_credentials=True
     allow_credentials=True,
     allow_methods=["*"],  # Allow all HTTP methods
     allow_headers=["*"],  # Allow all headers

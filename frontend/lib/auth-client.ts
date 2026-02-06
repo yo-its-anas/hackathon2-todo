@@ -13,4 +13,9 @@ export const authClient = createAuthClient({
 
   // JWT Client Plugin for token retrieval
   plugins: [jwtClient()],
+
+  // Fetch options for cross-origin session cookie handling
+  fetchOptions: {
+    credentials: "include" as RequestCredentials,
+  },
 })

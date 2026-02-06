@@ -97,6 +97,7 @@ export async function authenticatedFetch(
     const response = await fetch(fullURL, {
       ...options,
       headers,
+      credentials: "include",  // Required for cross-origin cookie/session handling
       signal: controller.signal,
     })
 

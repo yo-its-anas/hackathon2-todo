@@ -8,6 +8,9 @@ import { betterAuth } from "better-auth"
 import { jwt } from "better-auth/plugins"
 import { Pool } from "pg"
 
+// Determine if running in production (Vercel sets NODE_ENV=production)
+const isProduction = process.env.NODE_ENV === "production"
+
 export const auth = betterAuth({
   // Database connection using pg Pool (required for Better Auth)
   database: new Pool({
@@ -34,4 +37,18 @@ export const auth = betterAuth({
 
   // Base URL for authentication endpoints
   baseURL: process.env.BETTER_AUTH_URL || "http://localhost:3000",
+
+  // Session cookie configuration for cross-origin and production
+  advanced: {
+    cookiePrefix: "todo_app",
+    useSecureCookies: isProduction,
+  },
+
+  // Session configuration
+  session: {
+    cookieCache: {
+      enabled: true,
+      maxAge: 60 * 60 * 24, // 24 hours in seconds
+    },
+  },
 })
