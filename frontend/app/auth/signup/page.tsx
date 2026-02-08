@@ -83,9 +83,22 @@ export default function SignUpPage() {
 
       if (data) {
         // Get JWT token and store it for stateless API auth
-        const { data: tokenData } = await authClient.token()
-        if (tokenData?.token) {
-          storeToken(tokenData.token, 86400) // 24 hours
+        // Retry up to 3 times with delay to handle session initialization race
+        let tokenStored = false
+        for (let attempt = 0; attempt < 3 && !tokenStored; attempt++) {
+          if (attempt > 0) {
+            await new Promise(r => setTimeout(r, 300))
+          }
+          const { data: tokenData } = await authClient.token()
+          if (tokenData?.token) {
+            storeToken(tokenData.token, 86400) // 24 hours
+            tokenStored = true
+          }
+        }
+
+        if (!tokenStored) {
+          setError("Failed to initialize session. Please try again.")
+          return
         }
 
         // Notify navigation of auth state change

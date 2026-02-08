@@ -138,8 +138,10 @@ export async function authenticatedFetch(
   }
 
   // Build full URL if relative path provided
-  const baseURL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"
-  const fullURL = url.startsWith("http") ? url : `${baseURL}${url}`
+  // Normalize: remove trailing slash from base, ensure leading slash on path
+  const baseURL = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000").replace(/\/+$/, "")
+  const normalizedPath = url.startsWith("/") ? url : `/${url}`
+  const fullURL = url.startsWith("http") ? url : `${baseURL}${normalizedPath}`
 
   // Attach Authorization header with JWT (stateless - no cookies needed)
   const headers = {
