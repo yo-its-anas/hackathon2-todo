@@ -8,6 +8,7 @@
  * - Provides centralized error handling with user-friendly messages
  * - Handles network errors (offline, timeout, connection issues)
  * - Includes retry logic for transient failures
+ * - Guards against SSR calls (throws controlled error)
  */
 import { authClient } from "@/lib/auth-client"
 import { getStoredToken, storeToken, clearToken } from "@/lib/token-manager"
@@ -20,12 +21,18 @@ export class ApiError extends Error {
     message: string,
     public statusCode: number,
     public userMessage: string,
-    public isNetworkError: boolean = false
+    public isNetworkError: boolean = false,
+    public isSSRError: boolean = false
   ) {
     super(message)
     this.name = "ApiError"
   }
 }
+
+/**
+ * Token fetch state to prevent concurrent token requests
+ */
+let tokenFetchPromise: Promise<string | null> | null = null
 
 /**
  * Check if the browser is online
@@ -35,13 +42,46 @@ function isOnline(): boolean {
 }
 
 /**
+ * Fetch token from Better Auth with request deduplication.
+ * Prevents concurrent token requests from racing.
+ */
+async function fetchTokenFromAuth(): Promise<string | null> {
+  // If already fetching, wait for that request
+  if (tokenFetchPromise) {
+    return tokenFetchPromise
+  }
+
+  tokenFetchPromise = (async () => {
+    try {
+      const { data: tokenData, error: tokenError } = await authClient.token()
+      if (tokenError || !tokenData?.token) {
+        return null
+      }
+      // Cache the token (24 hours = 86400 seconds)
+      storeToken(tokenData.token, 86400)
+      return tokenData.token
+    } catch {
+      return null
+    } finally {
+      // Clear the promise after a short delay to allow retries
+      setTimeout(() => {
+        tokenFetchPromise = null
+      }, 100)
+    }
+  })()
+
+  return tokenFetchPromise
+}
+
+/**
  * Make an authenticated API request to the backend with retry logic.
  *
  * Automatically:
+ * - Guards against SSR execution (throws controlled error)
  * - Retrieves JWT from Better Auth
  * - Attaches Authorization: Bearer header
  * - Redirects to sign-in on 401 (expired/invalid token)
- * - Handles network errors (offline, timeout)
+ * - Handles network errors (offline, timeout) WITHOUT clearing token
  * - Retries transient failures (network errors, 500s)
  *
  * @param url - Backend API endpoint (relative or absolute)
@@ -57,6 +97,17 @@ export async function authenticatedFetch(
   retryCount: number = 2,
   timeoutMs: number = 10000
 ): Promise<Response> {
+  // SSR GUARD: Do NOT attempt token access or fetch during SSR
+  if (typeof window === "undefined") {
+    throw new ApiError(
+      "SSR not supported",
+      0,
+      "API calls require browser context. Please wait for client-side hydration.",
+      false,
+      true // isSSRError flag
+    )
+  }
+
   // Check if offline
   if (!isOnline()) {
     throw new ApiError(
@@ -72,20 +123,18 @@ export async function authenticatedFetch(
 
   // If no cached token, try to get from Better Auth and cache it
   if (!token) {
-    const { data: tokenData, error: tokenError } = await authClient.token()
+    token = await fetchTokenFromAuth()
 
-    if (tokenError || !tokenData?.token) {
-      // Token retrieval failed - redirect to sign-in
-      clearToken()
-      if (typeof window !== "undefined") {
-        window.location.href = "/auth/signin"
-      }
-      throw new ApiError("Authentication required", 401, "Authentication required", false)
+    if (!token) {
+      // Token retrieval failed - but DON'T redirect immediately
+      // Let the caller handle this (e.g., tasks page will show loading state)
+      throw new ApiError(
+        "Token not available",
+        401,
+        "Authentication required. Please sign in.",
+        false
+      )
     }
-
-    // Cache the token (24 hours = 86400 seconds)
-    token = tokenData.token
-    storeToken(token, 86400)
   }
 
   // Build full URL if relative path provided
@@ -115,15 +164,14 @@ export async function authenticatedFetch(
 
     // Handle specific HTTP error codes with user-friendly messages
     if (!response.ok) {
-      // 401 Unauthorized (expired/invalid token)
+      // 401 Unauthorized (expired/invalid token from backend)
       if (response.status === 401) {
-        // Clear cached token on auth failure
+        // Clear cached token on REAL auth failure (backend rejected the token)
         clearToken()
-        if (typeof window !== "undefined") {
-          // Set session expiry flag for signin page to display message
-          sessionStorage.setItem("sessionExpired", "true")
-          window.location.href = "/auth/signin?expired=true"
-        }
+        // Set session expiry flag for signin page to display message
+        sessionStorage.setItem("sessionExpired", "true")
+        // Redirect to sign-in
+        window.location.href = "/auth/signin?expired=true"
         throw new ApiError(
           "Token expired or invalid",
           401,
@@ -266,6 +314,27 @@ export function getErrorMessage(error: unknown): string {
 export function isNetworkError(error: unknown): boolean {
   if (error instanceof ApiError) {
     return error.isNetworkError
+  }
+  return false
+}
+
+/**
+ * Helper function to check if an error is an SSR error
+ */
+export function isSSRError(error: unknown): boolean {
+  if (error instanceof ApiError) {
+    return error.isSSRError
+  }
+  return false
+}
+
+/**
+ * Helper function to check if an error is a token-not-ready error
+ * (user might just need to wait for auth to initialize)
+ */
+export function isTokenNotReady(error: unknown): boolean {
+  if (error instanceof ApiError) {
+    return error.statusCode === 401 && error.message === "Token not available"
   }
   return false
 }

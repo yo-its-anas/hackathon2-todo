@@ -15,9 +15,10 @@
  * - Smooth animations for CRUD operations (T009-T016)
  */
 
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect, useCallback, useRef } from "react"
 import { motion, AnimatePresence } from "motion/react"
 import { authClient } from "@/lib/auth-client"
+import { getStoredToken } from "@/lib/token-manager"
 import {
   getAllTasks,
   createTask,
@@ -63,6 +64,9 @@ export default function TasksPage() {
   const [isChatOpen, setIsChatOpen] = useState(false)
 
   const loadTasks = useCallback(async (uid: string) => {
+    // Guard: only run in browser
+    if (typeof window === "undefined") return
+
     try {
       setLoading(true)
       const fetchedTasks = await getAllTasks(uid)
@@ -73,8 +77,19 @@ export default function TasksPage() {
       setTasks(sortedTasks)
       setError("")
     } catch (err) {
-      setError("Failed to load tasks")
-      console.error(err)
+      // Check error type to provide appropriate feedback
+      const errorMessage = err instanceof Error ? err.message : "Failed to load tasks"
+
+      // Don't show SSR-related errors to user (these are internal)
+      if (errorMessage.includes("browser context") || errorMessage.includes("SSR")) {
+        // Silently ignore SSR errors - will retry on client
+        console.debug("SSR error ignored, will retry on client")
+        return
+      }
+
+      // Show user-friendly error for network/API issues
+      setError(errorMessage)
+      console.error("loadTasks error:", err)
     } finally {
       setLoading(false)
     }
@@ -82,7 +97,9 @@ export default function TasksPage() {
 
   // Callback to refresh tasks after chat mutations (no loading spinner)
   const refreshTasks = useCallback(async () => {
-    if (!userId) return
+    // Guard: only run in browser with valid userId
+    if (typeof window === "undefined" || !userId) return
+
     try {
       const fetchedTasks = await getAllTasks(userId)
       const sortedTasks = fetchedTasks.sort((a, b) =>
@@ -90,24 +107,73 @@ export default function TasksPage() {
       )
       setTasks(sortedTasks)
     } catch (err) {
+      // Silent fail for background refresh - don't disrupt user
       console.error("Failed to refresh tasks:", err)
     }
   }, [userId])
 
-  // Fetch session and load tasks on mount
+  // Ref to prevent duplicate initialization
+  const initRef = useRef(false)
+
+  // Fetch session and load tasks on mount - with token readiness check
   useEffect(() => {
-    authClient.getSession().then((result) => {
-      if (result.data?.user?.id) {
-        setUserId(result.data.user.id)
-        loadTasks(result.data.user.id)
-      } else {
-        window.location.href = "/auth/signin"
+    // Guard: only run in browser and once
+    if (typeof window === "undefined") return
+    if (initRef.current) return
+    initRef.current = true
+
+    const initializeTasks = async () => {
+      try {
+        // Step 1: Get the session
+        const result = await authClient.getSession()
+
+        if (!result.data?.user?.id) {
+          window.location.href = "/auth/signin"
+          return
+        }
+
+        const uid = result.data.user.id
+        setUserId(uid)
+
+        // Step 2: Wait for token to be ready (with retry)
+        // Check if token is already cached
+        let token = getStoredToken()
+
+        if (!token) {
+          // Token not cached - try to get it from Better Auth
+          // This ensures the token is stored before we make API calls
+          const { data: tokenData } = await authClient.token()
+          if (!tokenData?.token) {
+            // Wait a short time and retry once (session might still be initializing)
+            await new Promise(resolve => setTimeout(resolve, 500))
+            const retryResult = await authClient.token()
+            if (!retryResult.data?.token) {
+              // Still no token after retry - redirect to signin
+              console.warn("Token not available after retry, redirecting to signin")
+              window.location.href = "/auth/signin"
+              return
+            }
+          }
+        }
+
+        // Step 3: Now load tasks (token is ready)
+        setSessionLoading(false)
+        await loadTasks(uid)
+      } catch (err) {
+        console.error("Failed to initialize tasks:", err)
+        // Only redirect on auth errors, not on network errors
+        if (err instanceof Error && err.message.includes("Authentication")) {
+          window.location.href = "/auth/signin"
+        } else {
+          // Show error state instead of redirecting
+          setError("Failed to load tasks. Please refresh the page.")
+          setSessionLoading(false)
+          setLoading(false)
+        }
       }
-      setSessionLoading(false)
-    }).catch(() => {
-      window.location.href = "/auth/signin"
-      setSessionLoading(false)
-    })
+    }
+
+    initializeTasks()
   }, [loadTasks])
 
   const showToast = useCallback((message: string, type: 'success' | 'error' | 'info' = 'success') => {

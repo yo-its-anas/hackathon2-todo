@@ -6,8 +6,9 @@
  * - Handle 401 errors (redirect to sign-in)
  * - Handle all HTTP errors with user-friendly messages
  * - Include proper headers
+ * - Reject SSR calls with controlled error
  */
-import { authenticatedFetch, ApiError } from "@/lib/api-client"
+import { authenticatedFetch, ApiError, isSSRError } from "@/lib/api-client"
 
 export interface Task {
   id: number
@@ -39,6 +40,10 @@ export async function getAllTasks(userId: string): Promise<Task[]> {
     const response = await authenticatedFetch(`/api/${userId}/tasks`)
     return response.json()
   } catch (error) {
+    // SSR errors should bubble up with clear message
+    if (isSSRError(error)) {
+      throw new Error("API calls require browser context")
+    }
     if (error instanceof ApiError) {
       // Re-throw with user-friendly message
       throw new Error(error.userMessage)
